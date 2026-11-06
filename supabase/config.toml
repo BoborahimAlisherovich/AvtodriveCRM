@@ -1,0 +1,12 @@
+# Webhook va cron funksiyalari JWT'siz chaqiriladi — ular o'z maxfiy kaliti bilan himoyalangan.
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.notify-dispatch]
+verify_jwt = false
+
+[functions.lead-intake]
+verify_jwt = false
+
+[functions.invite-staff]
+verify_jwt = true
