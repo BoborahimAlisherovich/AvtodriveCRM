@@ -28,7 +28,7 @@ export async function render(el) {
   el.onclick = onClick;
 }
 
-const FIELD = { first_name: 'Ism', last_name: 'Familiya', phone: 'Telefon', source: 'Manba', course_id: 'Kurs', next_contact_at: 'Keyingi aloqa', comment: 'Izoh', birthday: "Tug'ilgan kun", total: 'Summa', paid: "To'langan", due_date: 'Muddat', next_date: "Keyingi to'lov", note: 'Izoh', role: 'Rol', active: 'Faol', full_name: 'Ism', email: 'Login', position: 'Lavozim', work_start: 'Kelish', work_end: 'Ketish', schedule: 'Jadval' };
+const FIELD = { first_name: 'Ism', last_name: 'Familiya', phone: 'Telefon', source: 'Manba', course_id: 'Toifa', next_contact_at: 'Keyingi aloqa', comment: 'Izoh', birthday: "Tug'ilgan kun", total: 'Summa', paid: "To'langan", due_date: 'Muddat', next_date: "Keyingi to'lov", note: 'Izoh', role: 'Rol', active: 'Faol', full_name: 'Ism', email: 'Login', position: 'Lavozim', work_start: 'Kelish', work_end: 'Ketish', schedule: 'Jadval' };
 
 function val(r, v, key) {
   if (v === null || v === undefined || v === '') return '—';

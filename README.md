@@ -26,6 +26,7 @@ Keyin http://localhost:5173 ni oching.
 1. `supabase/migrations/0001_schema.sql` — jadvallar, indekslar, statuslar, sozlamalar
 2. `supabase/migrations/0002_functions.sql` — biznes funksiyalari (Round Robin, to'lovlar, hisobotlar…)
 3. `supabase/migrations/0003_security.sql` — RLS va huquqlar
+4. `supabase/migrations/0005_status_changed_at.sql` — Kanban: bosqichga o'tkazilgan vaqt, "Sizga o'tkazilgan" belgisi
 
 ### 3. Autentifikatsiya
 1. **Authentication → Sign In / Providers → Email**: **"Allow new users to sign up"** ni o'chiring

@@ -118,6 +118,7 @@ function decorateLead(r) {
     ...r,
     name: fullName(r),
     owner_name: r.owner_id ? profileName(r.owner_id) : '',
+    transferred_from_name: r.transferred_from ? profileName(r.transferred_from) : '',
     status: stageById(r.status_id),
     course_name: courseName(r.course_id),
     pay_status: r.pay_status || '',

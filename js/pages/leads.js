@@ -1,8 +1,8 @@
 // Leadlar: Kanban va jadval ko'rinishi, qidiruv, filtrlar, ommaviy o'tkazish, Excel.
 import { leads, stages, courses, staff, settings, PAY_STATUS, today } from '../data/api.js';
-import { can } from '../auth.js';
+import { can, me } from '../auth.js';
 import { esc, fmtDate, fmtDT, fmtPhone, options, badge, icon, toast, debounce, modal, pager, $, $$ } from '../ui.js';
-import { openLead, newLeadModal, transferModal } from '../components/leadCard.js';
+import { openLead, newLeadModal, transferModal, askCategory, needsCategory } from '../components/leadCard.js';
 import { createPaymentModal } from '../components/payForms.js';
 import { exportExcel, readExcel, guessMapping, applyMapping, IMPORT_FIELDS } from '../excel.js';
 
@@ -36,7 +36,7 @@ function drawToolbar() {
       ${all ? `<select class="sel" data-f="owner">${options([['none', 'Biriktirilmagan'], ...sellers.map(s => [s.id, s.full_name])], st.owner, { empty: 'Barcha sotuvchilar' })}</select>` : ''}
       ${st.view === 'table' ? `<select class="sel" data-f="status">${options(stages.list().map(s => [s.id, s.name]), st.status, { empty: 'Barcha statuslar' })}</select>` : ''}
       <select class="sel" data-f="source">${options(src, st.source, { empty: 'Barcha manbalar' })}</select>
-      <select class="sel" data-f="course">${options(courses.list({ includeInactive: true }).map(c => [c.id, c.name]), st.course, { empty: 'Barcha kurslar' })}</select>
+      <select class="sel" data-f="course">${options(courses.list({ includeInactive: true }).map(c => [c.id, c.name]), st.course, { empty: 'Barcha toifalar' })}</select>
       <select class="sel" data-f="pay">${options([['none', "To'lov yo'q"], ...Object.entries(PAY_STATUS).filter(([k]) => k !== 'bekor').map(([k, v]) => [k, v.name])], st.pay, { empty: "To'lov holati" })}</select>
       <input class="inp" type="date" data-f="from" value="${esc(st.from)}" title="Sanadan"><input class="inp" type="date" data-f="to" value="${esc(st.to)}" title="Sanagacha">
       ${anyFilter ? `<button class="btn light sm" data-act="clear">Tozalash</button>` : ''}
@@ -61,21 +61,94 @@ function card(l) {
   const due = l.next_contact_at ? new Date(l.next_contact_at) : null;
   const late = due && due.getTime() < t;
   const isToday = due && fmtDate(l.next_contact_at) === fmtDate(new Date().toISOString());
-  return `<article class="kcard" draggable="true" data-id="${l.id}" style="--c:${esc(l.status?.color)}">
+  const sel = st.sel.has(l.id);
+  const moved = l.status_changed_at && l.status_changed_at !== l.created_at ? l.status_changed_at : null;
+  return `<article class="kcard ${sel ? 'picked' : ''}" draggable="true" data-id="${l.id}" style="--c:${esc(l.status?.color)}">
+    <input type="checkbox" class="kc-check" data-sel="${l.id}" ${sel ? 'checked' : ''} title="Belgilash">
     <div class="kc-name">${esc(l.name)}</div>
+    ${transferTag(l)}
     <div class="kc-phone">${esc(fmtPhone(l.phone))}</div>
-    <div class="kc-meta">${[l.course_name, can('leads.all') ? l.owner_name || 'biriktirilmagan' : ''].filter(Boolean).map(esc).join(' · ')}</div>
-    <div class="kc-foot"><span>${esc(l.source)} · ${fmtDate(l.created_at)}</span>
+    <div class="kc-meta">${l.course_name ? `<span>${esc(l.course_name)}</span>` : needsCategory(l, l.status) ? '<span class="kc-nocat">Toifa aniqlanmagan</span>' : ''}${can('leads.all') ? `<span>${esc(l.owner_name || 'biriktirilmagan')}</span>` : ''}</div>
+    <div class="kc-times">
+      <span title="Lead qo'shilgan vaqt">Qo'shilgan: <b>${fmtDT(l.created_at)}</b></span>
+      ${moved ? `<span title="Shu bosqichga o'tkazilgan vaqt">Bosqichga o'tgan: <b>${fmtDT(moved)}</b></span>` : ''}
+    </div>
+    <div class="kc-foot"><span>${esc(l.source)}</span>
       ${due ? `<span class="due ${late ? 'late' : ''}" title="Keyingi aloqa">${isToday ? 'Bugun ' + fmtDT(l.next_contact_at).slice(11) : fmtDT(l.next_contact_at).slice(0, 16)}</span>` : ''}
       ${l.pay_status ? badge(PAY_STATUS[l.pay_status].name, PAY_STATUS[l.pay_status].color, 'plain') : ''}</div>
   </article>`;
 }
 
+// Boshqa sotuvchidan o'tkazilgan lead belgisi
+export function transferTag(l) {
+  if (!l.transferred_from || !l.transfer_new) return '';
+  const mine = l.owner_id === me()?.id;
+  const tip = `${l.transferred_from_name} → ${l.owner_name} · ${fmtDT(l.transferred_at)}${l.transfer_reason ? ' · ' + l.transfer_reason : ''}`;
+  return `<div class="kc-transfer ${mine ? 'mine' : ''}" title="${esc(tip)}">${icon('swap')} ${mine ? 'Sizga o\'tkazilgan' : 'O\'tkazilgan'} · ${esc(l.transferred_from_name)}dan</div>`;
+}
+
+// Kanban: belgilangan leadlar uchun yuqoridagi panel
+function kanbanBulkHtml() {
+  if (!st.sel.size) return '';
+  return `<div class="bulk bulk-float"><b>${st.sel.size} ta tanlandi</b>
+    <button class="btn sm primary" data-act="kbulk-move">${icon('swap')} O'tkazish</button>
+    <button class="btn sm light" data-act="bulk-clear">Bekor qilish</button></div>`;
+}
+function updateKanbanBulk() {
+  const bar = $('[data-kbulk]', root);
+  if (bar) bar.innerHTML = kanbanBulkHtml();
+  $$('.kcard', root).forEach(c => {
+    const on = st.sel.has(c.dataset.id);
+    c.classList.toggle('picked', on);
+    const cb = $('[data-sel]', c);
+    if (cb) cb.checked = on;
+  });
+  $$('[data-colsel]', root).forEach(cb => {
+    const ids = $$(`[data-drop="${cb.dataset.colsel}"] [data-sel]`, root).map(x => x.dataset.sel);
+    cb.checked = ids.length > 0 && ids.every(id => st.sel.has(id));
+  });
+}
+
+// Belgilangan leadlarni boshqa bosqichga va/yoki boshqa sotuvchiga o'tkazish
+async function bulkMoveModal() {
+  const ids = [...st.sel];
+  const canTr = can('leads.transfer') && (ids.length === 1 || can('leads.bulk'));
+  const u = me();
+  const sellers = canTr ? staff.sellers({ activeOnly: true }).filter(s => s.id !== u.id || u.role !== 'seller') : [];
+  const r = await modal({
+    title: `${ids.length} ta leadni o'tkazish`,
+    submit: "O'tkazish",
+    body: `<div class="form-grid">
+      <div class="fld full"><label>Bosqichga</label><select class="sel" name="stage">${options(stages.list().map(s => [s.id, s.name]), '', { empty: "— o'zgarmaydi —" })}</select></div>
+      ${canTr ? `<div class="fld full"><label>Sotuvchiga</label><select class="sel" name="to">${options(sellers.map(s => [s.id, s.full_name]), '', { empty: "— o'zgarmaydi —" })}</select></div>
+      <div class="fld full" data-reason hidden><label class="req">Sabab</label><textarea class="inp" name="reason" rows="2" placeholder="Sotuvchiga o'tkazish sababi"></textarea></div>` : ''}
+    </div>`,
+    onMount(form) {
+      if (form.to) form.to.onchange = () => { $('[data-reason]', form).hidden = !form.to.value; };
+    },
+    async onSubmit(v) {
+      if (!v.stage && !v.to) throw new Error('Bosqich yoki sotuvchini tanlang');
+      let moved = 0, transferred = 0;
+      if (v.to) transferred = await leads.transfer(ids, v.to, v.reason);
+      if (v.stage) for (const id of ids) { await leads.setStatus(id, v.stage); moved++; }
+      return { moved, transferred, stage: v.stage };
+    },
+  });
+  if (!r) return;
+  const parts = [];
+  if (r.stage) parts.push(`${r.moved} ta lead "${stages.get(r.stage)?.name}" bosqichiga o'tkazildi`);
+  if (r.transferred) parts.push(`${r.transferred} ta lead sotuvchiga o'tkazildi`);
+  toast(parts.join(', ') || "O'zgarish yo'q");
+  st.sel.clear();
+  changed();
+  refresh();
+}
+
 async function kanbanHtml() {
   const cols = await leads.kanban(filters(), st.limits);
   const manage = can('stages.manage');
-  return `<div class="kanban">${cols.map(c => `<section class="kcol">
-      <header class="khead" style="--c:${esc(c.stage.color)}"><span class="kname" title="${esc(c.stage.name)}">${esc(c.stage.name)}</span><span class="kcount">${c.total}</span>
+  return `<div data-kbulk>${kanbanBulkHtml()}</div><div class="kanban">${cols.map(c => `<section class="kcol">
+      <header class="khead" style="--c:${esc(c.stage.color)}">${c.rows.length ? `<input type="checkbox" class="kh-check" data-colsel="${c.stage.id}" title="Ustundagilarni belgilash" ${c.rows.every(r => st.sel.has(r.id)) ? 'checked' : ''}>` : ''}<span class="kname" title="${esc(c.stage.name)}">${esc(c.stage.name)}</span><span class="kcount">${c.total}</span>
         ${manage ? `<button class="icon-btn" data-stage="${c.stage.id}" title="Bosqichni tahrirlash">${icon('dots')}</button>` : ''}</header>
       <div class="kbody" data-drop="${c.stage.id}">${c.rows.map(card).join('')}
         ${c.total > c.rows.length ? `<button class="btn sm light kmore" data-more="${c.stage.id}">Yana ko'rsatish (${c.total - c.rows.length})</button>` : ''}
@@ -109,11 +182,23 @@ function bindDnD(body) {
     const id = dragId;
     dragId = null;
     const stage = stages.get(zone.dataset.drop);
+    // belgilangan kartani sudrasa — barcha belgilanganlar birga o'tadi
+    if (st.sel.has(id) && st.sel.size > 1) {
+      const n = st.sel.size;
+      try {
+        for (const x of st.sel) await leads.setStatus(x, stage.id);
+        toast(`${n} ta lead "${stage.name}" bosqichiga o'tkazildi`);
+        st.sel.clear();
+        changed();
+      } catch (ex) { toast(ex.message, 'err'); }
+      return refresh();
+    }
     try {
       const before = (await leads.get(id));
       await leads.setStatus(id, stage.id);
       changed();
       await refresh();
+      if (await askCategory(before, stage)) await refresh();
       if (stage.kind === 'won' && !before.payments.length && can('payments.create')) {
         createPaymentModal({ leadId: id, onDone: refresh });
       }
@@ -166,11 +251,11 @@ async function tableHtml() {
       <button class="btn sm light" data-act="bulk-clear">Bekor qilish</button></div>` : ''}
     <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr>
       ${bulk ? `<th class="chk"><input type="checkbox" class="check" data-selall ${allSel ? 'checked' : ''}></th>` : ''}
-      <th>Mijoz</th><th>Telefon</th><th>Status</th>${can('leads.all') ? '<th>Mas\'ul</th>' : ''}<th>Kurs</th><th>Manba</th><th>To'lov</th><th>Kelgan</th><th>Keyingi aloqa</th>
+      <th>Mijoz</th><th>Telefon</th><th>Status</th>${can('leads.all') ? '<th>Mas\'ul</th>' : ''}<th>Toifa</th><th>Manba</th><th>To'lov</th><th>Kelgan</th><th>Keyingi aloqa</th>
     </tr></thead><tbody>
     ${rows.map(l => `<tr class="click ${st.sel.has(l.id) ? 'sel' : ''}" data-open="${l.id}">
       ${bulk ? `<td class="chk"><input type="checkbox" data-sel="${l.id}" ${st.sel.has(l.id) ? 'checked' : ''}></td>` : ''}
-      <td class="name-cell"><b>${esc(l.name)}</b></td>
+      <td class="name-cell"><b>${esc(l.name)}</b>${transferTag(l)}</td>
       <td class="nowrap">${esc(fmtPhone(l.phone))}</td>
       <td>${badge(l.status?.name, l.status?.color)}</td>
       ${can('leads.all') ? `<td class="nowrap">${esc(l.owner_name || '—')}</td>` : ''}
@@ -193,7 +278,7 @@ async function doExport() {
       name: 'Leadlar',
       rows: rows.map(l => ({
         'Ism': l.first_name, 'Familiya': l.last_name, 'Telefon': l.phone, 'Status': l.status?.name || '',
-        "Mas'ul": l.owner_name, 'Kurs': l.course_name, 'Manba': l.source, "To'lov holati": l.pay_status ? PAY_STATUS[l.pay_status].name : '',
+        "Mas'ul": l.owner_name, 'Toifa': l.course_name, 'Manba': l.source, "To'lov holati": l.pay_status ? PAY_STATUS[l.pay_status].name : '',
         'Kelgan sana': fmtDT(l.created_at), 'Keyingi aloqa': fmtDT(l.next_contact_at), 'Izoh': l.comment,
       })),
     }]);
@@ -276,7 +361,12 @@ function onChange(e) {
   if (e.target.matches('[data-sel]')) {
     const id = e.target.dataset.sel;
     e.target.checked ? st.sel.add(id) : st.sel.delete(id);
+    if (st.view === 'kanban') return updateKanbanBulk();
     refresh();
+  }
+  if (e.target.matches('[data-colsel]')) {
+    $$(`[data-drop="${e.target.dataset.colsel}"] [data-sel]`, root).forEach(c => (e.target.checked ? st.sel.add(c.dataset.sel) : st.sel.delete(c.dataset.sel)));
+    return updateKanbanBulk();
   }
   if (e.target.matches('[data-selall]')) {
     $$('[data-sel]', root).forEach(c => (e.target.checked ? st.sel.add(c.dataset.sel) : st.sel.delete(c.dataset.sel)));
@@ -303,7 +393,8 @@ async function onClick(e) {
   if (act === 'addstage') addStage();
   if (act === 'export') doExport();
   if (act === 'import') doImport();
-  if (act === 'bulk-clear') { st.sel.clear(); refresh(); }
+  if (act === 'bulk-clear') { st.sel.clear(); st.view === 'kanban' ? updateKanbanBulk() : refresh(); }
+  if (act === 'kbulk-move') bulkMoveModal();
   if (act === 'bulk-transfer') transferModal([...st.sel], () => { st.sel.clear(); refresh(); });
 }
 

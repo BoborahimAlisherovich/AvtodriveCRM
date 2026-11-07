@@ -60,12 +60,12 @@ export function seed() {
   }));
 
   const courses = [
-    { id: 'c_eng', name: 'Ingliz tili (General)', price: 1800000, duration: '3 oy', schedule: 'Du-Chor-Ju, 18:00–19:30', teacher: 'Nodira Karimova', topics: 'Grammar, Speaking, Listening, Vocabulary' },
-    { id: 'c_ielts', name: 'IELTS tayyorlov', price: 2400000, duration: '3 oy', schedule: 'Se-Pa-Sha, 16:00–18:00', teacher: 'Jasur Rahimov', topics: 'Reading, Writing Task 1-2, Speaking, Mock test' },
-    { id: 'c_rus', name: 'Rus tili', price: 1500000, duration: '3 oy', schedule: 'Du-Chor-Ju, 15:00–16:30', teacher: 'Olga Petrova', topics: "So'zlashuv, Grammatika, Yozuv" },
-    { id: 'c_math', name: 'Matematika', price: 1200000, duration: '2 oy', schedule: 'Se-Pa, 17:00–18:30', teacher: 'Bekzod Sobirov', topics: 'Algebra, Geometriya, Test yechish' },
-    { id: 'c_it', name: 'Kompyuter savodxonligi', price: 900000, duration: '1.5 oy', schedule: 'Sha, 10:00–13:00', teacher: 'Akmal Umarov', topics: "Word, Excel, Internet, Telegram bot asoslari" },
-  ].map(c => ({ ...c, description: `${c.name} kursi — boshlang'ichdan yuqori darajagacha.`, active: true, created_at: ago(120).toISOString() }));
+    { id: 'c_b', name: '"B" toifa (yengil avtomobil)', price: 3500000, duration: '2.5 oy', schedule: 'Du-Chor-Ju, 09:00–11:00', teacher: 'Rustam Aliyev', topics: "YHQ nazariyasi, Avtomobil tuzilishi, Birinchi tibbiy yordam, Amaliy haydash (avtodrom va shahar)" },
+    { id: 'c_bc', name: '"BC" toifa', price: 5200000, duration: '3.5 oy', schedule: 'Se-Pa-Sha, 14:00–16:00', teacher: 'Sherzod Toshmatov', topics: "YHQ nazariyasi, Yuk avtomobili tuzilishi, Amaliy haydash" },
+    { id: 'c_a', name: '"A" toifa (mototsikl)', price: 1800000, duration: '1.5 oy', schedule: 'Sha-Ya, 10:00–12:00', teacher: 'Jahongir Qodirov', topics: "YHQ nazariyasi, Mototsikl boshqaruvi, Amaliy mashg'ulot" },
+    { id: 'c_c', name: '"C" toifa (yuk avtomobili)', price: 4500000, duration: '3 oy', schedule: 'Du-Chor-Ju, 15:00–17:00', teacher: 'Sherzod Toshmatov', topics: "Yuk tashish qoidalari, Amaliy haydash" },
+    { id: 'c_d', name: '"D" toifa (avtobus)', price: 6000000, duration: '4 oy', schedule: 'Se-Pa, 09:00–12:00', teacher: 'Bahodir Yusupov', topics: "Yo'lovchi tashish qoidalari, Avtobus boshqaruvi, Amaliy haydash" },
+  ].map(c => ({ ...c, description: `${c.name} haydovchilik guvohnomasi uchun tayyorlov kursi.`, active: true, created_at: ago(120).toISOString() }));
 
   const settings = {
     center_name: 'B va Express',
@@ -100,11 +100,12 @@ export function seed() {
     phones.add(phone);
     const status = age < 1 ? (R() < .7 ? 'st_new' : 'st_contacted') : weighted(STATUS_W);
     let owner = sellers[rr++ % 3];
-    const course = R() < .85 ? pick(courses).id : null;
+    // lead kelganda toifa noma'lum — gaplashilgandan keyin aniqlanadi
+    const course = ['st_new', 'st_noanswer'].includes(status) || (status === 'st_contacted' && R() < .5) || (status === 'st_lost' && R() < .6) ? null : (R() < .9 ? pick(courses).id : null);
     const lead = {
       id: id('l'), first_name: pick(female ? FN_F : FN_M), last_name: last, phone,
       source: weighted(SRC_W), owner_id: owner, status_id: status, course_id: course,
-      created_at: created.toISOString(), next_contact_at: null, comment: '',
+      created_at: created.toISOString(), status_changed_at: status === 'st_new' ? created.toISOString() : new Date(Math.min(now.getTime(), created.getTime() + R() * 3 * DAY)).toISOString(), next_contact_at: null, comment: '',
       birthday: null, telegram_chat_id: R() < .15 ? String(5e8 + Math.floor(R() * 1e8)) : null,
       created_by: null,
     };
@@ -123,6 +124,7 @@ export function seed() {
       lead_assignments.push({ id: id('as'), lead_id: lead.id, from_id: owner, to_id: to, by_id: by, reason: pick(['Mijoz rus tilida gaplashadi', "Sotuvchi so'rovi", 'Ish yuklamasi']), created_at: at });
       activity_logs.push({ id: id('log'), user_id: by, action: 'lead.transfer', entity: 'lead', entity_id: lead.id, label: `${lead.first_name} ${lead.last_name}`, old: owner, new: to, created_at: at });
       owner = lead.owner_id = to;
+      Object.assign(lead, { transferred_from: lead_assignments.at(-1).from_id, transferred_at: at, transfer_reason: lead_assignments.at(-1).reason, transfer_new: R() < .6 });
     }
     if (status !== 'st_new' && R() < .45) {
       const cnt = 1 + Math.floor(R() * 2);

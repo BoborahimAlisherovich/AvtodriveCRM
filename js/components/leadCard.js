@@ -18,7 +18,6 @@ export function newLeadModal(onDone) {
       <div class="fld"><label>Familiya</label><input class="inp" name="last_name"></div>
       <div class="fld"><label class="req">Telefon</label><input class="inp" name="phone" type="tel" placeholder="+998 90 123 45 67"><div class="hint" data-dup></div></div>
       <div class="fld"><label>Manba</label><select class="sel" name="source">${options(src, "Qo'lda kiritish")}</select></div>
-      <div class="fld"><label>Kurs</label><select class="sel" name="course_id">${options(courses.list().map(c => [c.id, c.name]), '', { empty: '— tanlanmagan —' })}</select></div>
       ${u.role === 'seller' ? '' : `<div class="fld"><label>Mas'ul sotuvchi</label><select class="sel" name="owner_id">${options([['auto', 'Avtomatik (navbat bilan)'], ...sellers.map(s => [s.id, s.full_name])], 'auto')}</select></div>`}
       <div class="fld"><label>Keyingi aloqa</label><input class="inp" name="next_contact_at" type="datetime-local"></div>
       <div class="fld full"><label>Izoh</label><textarea class="inp" name="comment" rows="2"></textarea></div>
@@ -38,6 +37,30 @@ export function newLeadModal(onDone) {
       return l;
     },
   });
+}
+
+// Lead kelganda faqat ism/telefon bo'ladi; toifa mijoz bilan gaplashilgandan keyin aniqlanadi.
+// Bosqich "Yangi", "Javob bermadi" yoki "Bekor qilindi" bo'lmasa va toifa yo'q bo'lsa — so'raymiz.
+export const needsCategory = (lead, stage) => !lead.course_id && stage && !['new', 'noanswer', 'lost'].includes(stage.kind);
+
+export async function askCategory(lead, stage) {
+  if (!needsCategory(lead, stage)) return lead.course_id || null;
+  const list = courses.list();
+  if (!list.length) return null;
+  const r = await modal({
+    title: 'Mijoz qaysi toifaga yozilmoqchi?',
+    submit: 'Saqlash',
+    cancel: 'Keyinroq',
+    body: `<p class="muted small" style="margin:0 0 12px"><b>${esc(lead.name)}</b> — "${esc(stage.name)}". Gaplashganingizda aniqlangan toifani belgilang.</p>
+      <div class="cat-pick">${list.map(c => `<label class="cat-opt"><input type="radio" name="course_id" value="${c.id}"><span>${esc(c.name)}</span></label>`).join('')}</div>`,
+    async onSubmit(v) {
+      if (!v.course_id) throw new Error('Toifani tanlang yoki «Keyinroq» ni bosing');
+      await leads.update(lead.id, { course_id: v.course_id });
+      return v.course_id;
+    },
+  });
+  if (r) toast('Toifa saqlandi');
+  return r || null;
 }
 
 export function transferModal(ids, onDone) {
@@ -71,7 +94,7 @@ function fieldVal(k, v) {
   if (k === 'course_id') return courses.list({ includeInactive: true }).find(c => c.id === v)?.name || v;
   return typeof v === 'object' ? JSON.stringify(v) : String(v);
 }
-const FIELD = { first_name: 'Ism', last_name: 'Familiya', phone: 'Telefon', source: 'Manba', course_id: 'Kurs', next_contact_at: 'Keyingi aloqa', comment: 'Izoh', birthday: "Tug'ilgan kun" };
+const FIELD = { first_name: 'Ism', last_name: 'Familiya', phone: 'Telefon', source: 'Manba', course_id: 'Toifa', next_contact_at: 'Keyingi aloqa', comment: 'Izoh', birthday: "Tug'ilgan kun" };
 
 function historyHtml(lead) {
   const items = [
@@ -104,6 +127,7 @@ export async function openLead(id, onChange) {
     d.innerHTML = `<div class="drawer-head"><div class="grow">
         <div class="muted small">Lead · ${fmtDT(lead.created_at)} · ${esc(lead.source)}</div>
         <h2>${esc(lead.name)}</h2>
+        ${lead.transferred_from && lead.transfer_new ? `<div class="transfer-note ${lead.owner_id === me()?.id ? 'mine' : ''}">${icon('swap')} <span><b>${lead.owner_id === me()?.id ? 'Sizga o\'tkazilgan' : 'O\'tkazilgan'}</b>: ${esc(lead.transferred_from_name)} → ${esc(lead.owner_name)} · ${fmtDT(lead.transferred_at)}${lead.transfer_reason ? ` · <i>${esc(lead.transfer_reason)}</i>` : ''}</span></div>` : ''}
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
           ${statusSelect(lead, list)}
           <a href="tel:${esc(lead.phone)}" class="btn sm">${icon('phone')} ${esc(fmtPhone(lead.phone))}</a>
@@ -119,7 +143,7 @@ export async function openLead(id, onChange) {
             <div class="fld"><label>Familiya</label><input class="inp" name="last_name" value="${esc(lead.last_name)}"></div>
             <div class="fld"><label>Telefon</label><input class="inp" name="phone" value="${esc(fmtPhone(lead.phone))}"></div>
             <div class="fld"><label>Manba</label><select class="sel" name="source">${options(src.includes(lead.source) ? src : [...src, lead.source], lead.source)}</select></div>
-            <div class="fld"><label>Kurs</label><select class="sel" name="course_id">${options(courseList.map(c => [c.id, c.name]), lead.course_id, { empty: '— tanlanmagan —' })}</select></div>
+            <div class="fld"><label>Toifa</label><select class="sel" name="course_id">${options(courseList.map(c => [c.id, c.name]), lead.course_id, { empty: '— hali aniqlanmagan —' })}</select></div>
             <div class="fld"><label>Keyingi aloqa (qayta qo'ng'iroq)</label><input class="inp" type="datetime-local" name="next_contact_at" value="${toLocalInput(lead.next_contact_at)}"></div>
             <div class="fld"><label>Tug'ilgan kun</label><input class="inp" type="date" name="birthday" value="${esc(lead.birthday || '')}"></div>
             <div class="fld full"><label>Umumiy izoh</label><textarea class="inp" name="comment" rows="2">${esc(lead.comment)}</textarea></div>
@@ -164,6 +188,7 @@ export async function openLead(id, onChange) {
         await leads.setStatus(id, s.id);
         toast(`Status: ${s.name}`);
         changed();
+        await askCategory(lead, s);
         after();
         if (s.kind === 'won' && !lead.payments.length && can('payments.create')) createPaymentModal({ leadId: id, onDone: after });
       } catch (ex) { toast(ex.message, 'err'); }

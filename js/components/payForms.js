@@ -27,7 +27,7 @@ export async function createPaymentModal({ leadId, onDone } = {}) {
     body: `<div class="form-grid">
       ${lead ? `<div class="fld full"><label>Mijoz</label><div><b>${esc(lead.name)}</b> <span class="muted">${esc(lead.phone)}</span></div><input type="hidden" name="lead_id" value="${lead.id}"></div>`
         : `<div class="fld full"><label class="req">Mijoz</label><input class="inp" data-lead-filter placeholder="Ism yoki telefon bo'yicha filtrlash" style="width:100%;margin-bottom:6px"><select class="sel" name="lead_id" size="5" style="height:auto">${leadOpts}</select></div>`}
-      <div class="fld full"><label>Kurs</label><select class="sel" name="course_id">${options(courseList.map(c => [c.id, `${c.name} — ${money(c.price)}`]), startCourse, { empty: '— tanlanmagan —' })}</select></div>
+      <div class="fld full"><label>Toifa</label><select class="sel" name="course_id">${options(courseList.map(c => [c.id, `${c.name} — ${money(c.price)}`]), startCourse, { empty: '— tanlanmagan —' })}</select></div>
       <div class="fld"><label class="req">Umumiy summa</label><input class="inp" name="total" type="number" min="0" step="1000" value="${price}"></div>
       <div class="fld"><label>Boshlang'ich to'lov</label><input class="inp" name="paid" type="number" min="0" step="1000" value="0"></div>
       <div class="fld"><label>Qolgan summa</label><div data-rest class="money" style="padding-top:7px;font-weight:600">—</div></div>
@@ -102,7 +102,7 @@ export function editModal(p, onDone) {
     submit: 'Saqlash',
     body: `<div class="info" style="margin-bottom:14px">Barcha o'zgarishlar to'lov tarixida va Activity Logda saqlanadi.</div>
       <div class="form-grid">
-        <div class="fld full"><label>Kurs</label><select class="sel" name="course_id">${options(courseList.map(c => [c.id, c.name]), p.course_id, { empty: '—' })}</select></div>
+        <div class="fld full"><label>Toifa</label><select class="sel" name="course_id">${options(courseList.map(c => [c.id, c.name]), p.course_id, { empty: '—' })}</select></div>
         <div class="fld"><label class="req">Umumiy summa</label><input class="inp" name="total" type="number" min="0" step="1000" value="${p.total}"></div>
         <div class="fld"><label>To'langan summa</label><input class="inp" name="paid" type="number" min="0" step="1000" value="${p.paid}"></div>
         <div class="fld"><label class="req">To'lov muddati</label><input class="inp" name="due_date" type="date" value="${esc(p.due_date || '')}"></div>
@@ -140,7 +140,7 @@ export function cancelModal(p, onDone) {
 }
 
 const HIST = { create: "To'lov yaratildi", pay: "Pul qabul qilindi", edit: 'Tahrirlandi', cancel: 'Bekor qilindi' };
-const FIELD = { total: 'Umumiy summa', paid: "To'langan", due_date: 'Muddat', next_date: "Keyingi to'lov", note: 'Izoh', course_id: 'Kurs' };
+const FIELD = { total: 'Umumiy summa', paid: "To'langan", due_date: 'Muddat', next_date: "Keyingi to'lov", note: 'Izoh', course_id: 'Toifa' };
 function fmtVal(k, v) {
   if (v === null || v === undefined || v === '') return '—';
   if (k === 'total' || k === 'paid') return money(v);

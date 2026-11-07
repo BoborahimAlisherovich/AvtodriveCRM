@@ -42,13 +42,13 @@ const GUESS = [
   ['phone', /(tel|phone|raqam|номер)/i],
   ['source', /(manba|source|источник)/i],
   ['owner', /(sotuvchi|menejer|manager|mas.?ul)/i],
-  ['course', /(kurs|course|yo.?nalish)/i],
+  ['course', /(kurs|course|yo.?nalish|toifa|kategor)/i],
   ['comment', /(izoh|comment|koment|примеч)/i],
   ['date', /(sana|date|дата)/i],
 ];
 export const IMPORT_FIELDS = {
   full_name: 'Ism familiya (bitta ustun)', first_name: 'Ism', last_name: 'Familiya', phone: 'Telefon',
-  source: 'Manba', owner: 'Sotuvchi', course: 'Kurs', comment: 'Izoh', date: 'Sana',
+  source: 'Manba', owner: 'Sotuvchi', course: 'Toifa', comment: 'Izoh', date: 'Sana',
 };
 export function guessMapping(headers) {
   const map = {};

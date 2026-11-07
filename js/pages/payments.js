@@ -17,7 +17,7 @@ export async function render(el, params) {
       <div class="search">${icon('search')}<input class="inp" data-f="q" type="search" placeholder="Mijoz ismi yoki telefon" value="${esc(st.q)}"></div>
       <div class="seg" data-seg>${[['', 'Hammasi'], ...Object.entries(PAY_STATUS).map(([k, v]) => [k, v.name])].map(([k, t]) => `<button data-status="${k}" class="${st.status === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       ${all ? `<select class="sel" data-f="owner">${options(staff.sellers().map(s => [s.id, s.full_name]), st.owner, { empty: 'Barcha sotuvchilar' })}</select>` : ''}
-      <select class="sel" data-f="course">${options(courses.list({ includeInactive: true }).map(c => [c.id, c.name]), st.course, { empty: 'Barcha kurslar' })}</select>
+      <select class="sel" data-f="course">${options(courses.list({ includeInactive: true }).map(c => [c.id, c.name]), st.course, { empty: 'Barcha toifalar' })}</select>
       <div class="grow"></div>
       <button class="btn" data-act="export">${icon('excel')} Excel</button>
       ${can('payments.create') ? `<button class="btn primary" data-act="new">${icon('plus')} To'lov</button>` : ''}
@@ -39,7 +39,7 @@ async function draw() {
       <div class="kpi" style="--c:var(--danger)"><div class="t">Qarzdorlik</div><div class="v money">${money(totals.debt)}</div><div class="d">${totals.debtors} ta mijoz</div></div>
     </div>
     <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr>
-      <th>Mijoz</th><th>Telefon</th><th>Kurs</th><th>Sotuvchi</th><th class="num">Umumiy</th><th class="num">To'langan</th><th class="num">Qolgan</th><th>Muddat</th><th>Status</th><th></th>
+      <th>Mijoz</th><th>Telefon</th><th>Toifa</th><th>Sotuvchi</th><th class="num">Umumiy</th><th class="num">To'langan</th><th class="num">Qolgan</th><th>Muddat</th><th>Status</th><th></th>
     </tr></thead><tbody>
     ${rows.map(p => `<tr class="click" data-open="${p.id}">
       <td class="name-cell"><b>${esc(p.lead_name)}</b></td>
@@ -85,7 +85,7 @@ async function onClick(e) {
       await exportExcel(`tolovlar_${today()}.xlsx`, [{
         name: "To'lovlar",
         rows: all.map(p => ({
-          'Mijoz': p.lead_name, 'Telefon': p.phone, 'Kurs': p.course_name, 'Sotuvchi': p.owner_name,
+          'Mijoz': p.lead_name, 'Telefon': p.phone, 'Toifa': p.course_name, 'Sotuvchi': p.owner_name,
           'Umumiy summa': p.total, "To'langan": p.paid, 'Qolgan': p.remaining, "To'lov muddati": fmtDate(p.due_date),
           "Keyingi to'lov": fmtDate(p.next_date), 'Status': PAY_STATUS[p.status].name, 'Yaratilgan': fmtDT(p.created_at), 'Izoh': p.note,
         })),

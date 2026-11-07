@@ -236,6 +236,7 @@ function decorateLead(l, payMap) {
     ...l,
     name: fullName(l),
     owner_name: l.owner_id ? profileName(l.owner_id) : '',
+    transferred_from_name: l.transferred_from ? profileName(l.transferred_from) : '',
     status: byId('lead_statuses', l.status_id),
     course_name: byId('courses', l.course_id)?.name || '',
     pay_status: payMap ? payMap.get(l.id) || '' : '',
@@ -282,7 +283,10 @@ export const leads = {
   kanban(f = {}, limits = {}) {
     const { rows, payMap } = filterLeads({ ...f, status: '' });
     const by = new Map();
-    for (const l of rows) {
+    // oxirgi o'tkazilgan (yoki qo'shilgan) lead ustun boshida turadi
+    // bosqichga o'tkazilgan yoki boshqa sotuvchiga o'tkazilgan — qaysi biri keyinroq bo'lsa
+    const moved = l => [l.status_changed_at || l.created_at, l.transferred_at || ''].sort().at(-1);
+    for (const l of [...rows].sort((a, b) => moved(b).localeCompare(moved(a)))) {
       if (!by.has(l.status_id)) by.set(l.status_id, []);
       by.get(l.status_id).push(l);
     }
@@ -328,7 +332,7 @@ export const leads = {
     const l = {
       id: uid('l'), first_name: data.first_name.trim(), last_name: (data.last_name || '').trim(), phone,
       source: data.source || "Qo'lda kiritish", owner_id: owner, status_id: first.id, course_id: data.course_id || null,
-      created_at: now(), next_contact_at: data.next_contact_at ? new Date(data.next_contact_at).toISOString() : null,
+      created_at: now(), status_changed_at: null, next_contact_at: data.next_contact_at ? new Date(data.next_contact_at).toISOString() : null,
       comment: data.comment || '', birthday: data.birthday || null, telegram_chat_id: null, created_by: u.id,
     };
     db.leads.push(l);
@@ -362,6 +366,9 @@ export const leads = {
     if (l.status_id === statusId) return done(decorateLead(l));
     const old = byId('lead_statuses', l.status_id)?.name;
     l.status_id = statusId;
+    l.status_changed_at = now();
+    // yangi egasi leadni harakatga keltirdi — "Sizga o'tkazilgan" belgisi olinadi
+    if (l.transfer_new && l.owner_id === me()?.id) l.transfer_new = false;
     log('lead.status', 'lead', id, fullName(l), old, s.name);
     return done(decorateLead(l));
   },
@@ -385,6 +392,7 @@ export const leads = {
       if (l.owner_id === toId) continue;
       const from = l.owner_id;
       l.owner_id = toId;
+      if (from) Object.assign(l, { transferred_from: from, transferred_at: now(), transfer_reason: reason.trim(), transfer_new: true });
       db.lead_assignments.push({ id: uid('as'), lead_id: id, from_id: from, to_id: toId, by_id: u.id, reason: reason.trim(), created_at: now() });
       log(from ? 'lead.transfer' : 'lead.assign', 'lead', id, fullName(l), from, toId);
       n++;
