@@ -188,15 +188,24 @@ export async function openLead(id, onChange) {
 
     const after = () => { draw(); onChange?.(); };
     $('[data-status]', d).onchange = async e => {
-      try {
-        const s = list.find(x => x.id === e.target.value);
-        await leads.setStatus(id, s.id);
-        toast(`Status: ${s.name}`);
-        changed();
-        await askCategory(lead, s);
-        after();
-        if (s.kind === 'won' && !lead.payments.length && can('payments.create')) createPaymentModal({ leadId: id, onDone: after });
-      } catch (ex) { toast(ex.message, 'err'); }
+      const s = list.find(x => x.id === e.target.value);
+      const prev = list.find(x => x.id === lead.status_id);
+      // 1) darhol: rang va kanban kartasi (serverni kutmasdan)
+      e.target.style.background = s.color;
+      dispatchEvent(new CustomEvent('crm:lead-moved', { detail: { ids: [id], stage: s } }));
+      // 2) serverga orqa fonda; xato bo'lsa qaytaramiz
+      const save = leads.setStatus(id, s.id).then(() => { lead.status_id = s.id; changed(); }).catch(ex => {
+        toast(ex.message, 'err');
+        e.target.value = prev.id; e.target.style.background = prev.color;
+        dispatchEvent(new CustomEvent('crm:lead-moved', { detail: { ids: [id], stage: prev } }));
+        throw ex;
+      });
+      toast(`Status: ${s.name}`);
+      const cid = await askCategory(lead, s);
+      if (cid) dispatchEvent(new CustomEvent('crm:lead-course', { detail: { id, course_id: cid } }));
+      try { await save; } catch { return; }
+      if (s.kind === 'won' && !lead.payments.length && can('payments.create')) createPaymentModal({ leadId: id, lead, onDone: after });
+      else if (cid) draw();
     };
     $('[data-form]', d).onsubmit = async e => {
       e.preventDefault();

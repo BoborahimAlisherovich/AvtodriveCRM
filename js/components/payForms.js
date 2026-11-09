@@ -5,12 +5,12 @@ import { esc, money, num, fmtDate, fmtDT, modal, options, toast, badge, openDraw
 
 const changed = () => dispatchEvent(new Event('crm:changed'));
 
-export async function createPaymentModal({ leadId, onDone } = {}) {
+export async function createPaymentModal({ leadId, lead: known = null, onDone } = {}) {
   const courseList = courses.list();
   let leadOpts = '';
   let lead = null;
   if (leadId) {
-    lead = await leads.get(leadId);
+    lead = known?.id === leadId ? known : await leads.get(leadId);
   } else {
     const all = await leads.all({});
     const rank = l => (l.status?.kind === 'won' ? 0 : l.status_id === 'st_waitpay' ? 1 : 2);

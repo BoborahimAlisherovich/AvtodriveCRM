@@ -131,20 +131,29 @@ async function bulkMoveModal() {
     },
     async onSubmit(v) {
       if (!v.stage && !v.to) throw new Error('Bosqich yoki sotuvchini tanlang');
-      let moved = 0, transferred = 0;
-      if (v.to) transferred = await leads.transfer(ids, v.to, v.reason);
-      if (v.stage) { await saveStatuses(ids, v.stage); moved = ids.length; }
-      return { moved, transferred, stage: v.stage };
+      if (v.to && !v.reason?.trim()) throw new Error("O'tkazish sababini yozing");
+      return v;
     },
   });
   if (!r) return;
-  const parts = [];
-  if (r.stage) parts.push(`${r.moved} ta lead "${stages.get(r.stage)?.name}" bosqichiga o'tkazildi`);
-  if (r.transferred) parts.push(`${r.transferred} ta lead sotuvchiga o'tkazildi`);
-  toast(parts.join(', ') || "O'zgarish yo'q");
   st.sel.clear();
-  changed();
-  refresh();
+  updateKanbanBulk();
+  const stage = r.stage ? stages.get(r.stage) : null;
+  // bosqich: kartalar darhol ko'chadi, saqlash orqa fonda
+  if (stage) moveCardsLocally(ids, stage);
+  try {
+    const jobs = [];
+    if (stage) jobs.push(saveStatuses(ids, stage.id));
+    if (r.to) jobs.push(leads.transfer(ids, r.to, r.reason));
+    const [a, b] = await Promise.all(jobs);
+    const transferred = r.to ? (stage ? b : a) : 0;
+    const parts = [];
+    if (stage) parts.push(`${ids.length} ta lead "${stage.name}" bosqichiga o'tkazildi`);
+    if (transferred) parts.push(`${transferred} ta lead sotuvchiga o'tkazildi`);
+    toast(parts.join(', ') || "O'zgarish yo'q");
+    changed();
+    if (r.to) refresh();
+  } catch (ex) { toast(ex.message, 'err'); refresh(); }
 }
 
 // Kanban'dagi leadlar (id → lead) — kartani serverni kutmasdan ko'chirish uchun
@@ -170,6 +179,18 @@ function moveCardsLocally(ids, stage) {
   }
   return true;
 }
+
+function setCourseLocally(id, courseId) {
+  const l = rowsById.get(id);
+  if (!l) return;
+  Object.assign(l, { course_id: courseId, course_name: courses.list({ includeInactive: true }).find(c => c.id === courseId)?.name || '' });
+  const el = $(`.kcard[data-id="${CSS.escape(id)}"]`, root);
+  if (el) { const t = document.createElement('template'); t.innerHTML = card(l).trim(); el.replaceWith(t.content.firstChild); }
+}
+
+// Lead oynasida status/toifa o'zgarsa — kanban kartasi darhol yangilanadi (butun kanban qayta yuklanmaydi)
+addEventListener('crm:lead-moved', e => { if (root?.isConnected && st.view === 'kanban') moveCardsLocally(e.detail.ids, e.detail.stage); });
+addEventListener('crm:lead-course', e => { if (root?.isConnected && st.view === 'kanban') setCourseLocally(e.detail.id, e.detail.course_id); });
 
 // Serverga saqlash: bir vaqtda 8 tadan parallel
 async function saveStatuses(ids, stageId) {
@@ -232,21 +253,20 @@ function bindDnD(body) {
     }
     const before = { ...(rowsById.get(id) || {}) };
     if (before.status_id === stage.id) return;
-    // 1) darhol ko'chiramiz, 2) orqa fonda saqlaymiz; xato bo'lsa — qaytaramiz
+    const prevStage = before.status;
+    // 1) darhol ko'chiramiz; 2) serverga orqa fonda; xato bo'lsa — joyiga qaytaramiz
     if (!moveCardsLocally([id], stage)) await refresh();
-    try {
-      await leads.setStatus(id, stage.id);
-      changed();
-      if (before.id && await askCategory(before, stage)) {
-        const l = rowsById.get(id);
-        const fresh = await leads.get(id);
-        if (l) { Object.assign(l, { course_id: fresh.course_id, course_name: fresh.course_name }); $(`.kcard[data-id="${CSS.escape(id)}"]`, root)?.replaceWith(Object.assign(document.createElement('template'), { innerHTML: card(l) }).content); }
-      }
-      if (stage.kind === 'won' && can('payments.create')) {
-        const full = await leads.get(id);
-        if (!full.payments.length) createPaymentModal({ leadId: id, onDone: refresh });
-      }
-    } catch (ex) { toast(ex.message, 'err'); refresh(); }
+    const save = leads.setStatus(id, stage.id).then(changed).catch(ex => {
+      toast(ex.message, 'err');
+      if (prevStage) moveCardsLocally([id], prevStage); else refresh();
+      throw ex;
+    });
+    // toifa oynasi serverni kutmasdan darhol chiqadi
+    if (before.id) { const cid = await askCategory(before, stage); if (cid) setCourseLocally(id, cid); }
+    try { await save; } catch { return; }
+    if (stage.kind === 'won' && can('payments.create') && !before.pay_status) {
+      createPaymentModal({ leadId: id, lead: rowsById.get(id) || before, onDone: refresh });
+    }
   });
 }
 
