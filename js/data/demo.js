@@ -733,6 +733,14 @@ async function sha256(s) {
 }
 
 export const telegram = {
+  sendMessage(leadId, text) {
+    const l = leadOf(leadId);
+    if (!text?.trim()) fail('Xabar matnini yozing');
+    if (!l.telegram_chat_id) fail('Mijoz Telegram botga ulanmagan');
+    notify('client', l.id, fullName(l), 'manual', text.trim());
+    log('tg.message', 'lead', l.id, fullName(l), null, text.trim().slice(0, 120));
+    return done();
+  },
   // Bir martalik token: bazada faqat hash saqlanadi, 24 soat amal qiladi
   async createLink(leadId) {
     const l = leadOf(leadId);

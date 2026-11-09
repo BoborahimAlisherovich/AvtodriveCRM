@@ -10,11 +10,13 @@ const BTN = {
   about: 'ℹ️ Biz haqimizda',
   enroll: '📝 Kursga yozilish',
   contacts: '📞 Aloqa',
+  birthday: "🎂 Tug'ilgan kunim",
+  skip: "O'tkazib yuborish",
   back: '⬅️ Menyu',
 };
 
 const MENU = {
-  keyboard: [[{ text: BTN.courses }, { text: BTN.about }], [{ text: BTN.enroll }, { text: BTN.contacts }]],
+  keyboard: [[{ text: BTN.courses }, { text: BTN.about }], [{ text: BTN.enroll }, { text: BTN.contacts }], [{ text: BTN.birthday }]],
   resize_keyboard: true,
   is_persistent: true,
 };
@@ -38,6 +40,8 @@ async function tg(method: string, body: Record<string, unknown>) {
 }
 const send = (chat_id: number, text: string, reply_markup: unknown = MENU) =>
   tg('sendMessage', { chat_id, text, reply_markup, parse_mode: 'HTML', disable_web_page_preview: true });
+
+const ASK_BDAY = { keyboard: [[{ text: BTN.skip }], [{ text: BTN.back }]], resize_keyboard: true, one_time_keyboard: true };
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 const money = (n: number) => `${Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm`;
@@ -87,7 +91,7 @@ async function showCourse(chat: number, id: string) {
 }
 
 async function askPhone(chat: number, courseId: string | null) {
-  await adminClient().from('bot_state').upsert({ chat_id: chat, course_id: courseId, updated_at: new Date().toISOString() });
+  await adminClient().from('bot_state').upsert({ chat_id: chat, course_id: courseId, step: 'phone', updated_at: new Date().toISOString() });
   let course = '';
   if (courseId) {
     const { data } = await adminClient().from('courses').select('name').eq('id', courseId).maybeSingle();
@@ -110,10 +114,44 @@ async function register(chat: number, phone: string, firstName: string, lastName
     return send(chat, "Kechirasiz, raqamni qabul qilib bo'lmadi. Iltimos, raqamni +998 XX XXX XX XX ko'rinishida yuboring.", ASK_PHONE);
   }
   if (data?.id) await db.from('leads').update({ telegram_chat_id: chat }).eq('id', data.id);
-  await db.from('bot_state').delete().eq('chat_id', chat);
-  return send(chat, data?.duplicate
+  await send(chat, data?.duplicate
     ? "Rahmat! Siz avval ham murojaat qilgansiz — arizangiz yangilandi. Menejerimiz tez orada bog'lanadi. ✅"
     : "Rahmat! Arizangiz qabul qilindi ✅\nMenejerimiz tez orada siz bilan bog'lanadi.");
+  // tug'ilgan kun hali yo'q bo'lsa — so'raymiz
+  const { data: lead } = await db.from('leads').select('birthday').eq('id', data?.id).maybeSingle();
+  if (lead && !lead.birthday) return askBirthday(chat);
+  await db.from('bot_state').delete().eq('chat_id', chat);
+}
+
+/* ---------------- tug'ilgan kun ---------------- */
+async function askBirthday(chat: number) {
+  await adminClient().from('bot_state').upsert({ chat_id: chat, step: 'birthday', updated_at: new Date().toISOString() });
+  return send(chat, "🎂 Tug'ilgan kuningizni yozing — shu kuni sizni tabriklaymiz!\nMasalan: <b>15.03.2002</b>", ASK_BDAY);
+}
+
+function parseBirthday(text: string): string | null {
+  const m = text.trim().match(/^(\d{1,2})[.\/\-\s](\d{1,2})[.\/\-\s](\d{4})$/);
+  if (!m) return null;
+  const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  const nowY = new Date().getUTCFullYear();
+  if (dt.getUTCDate() !== d || dt.getUTCMonth() !== mo - 1 || y < 1940 || y > nowY - 10) return null;
+  return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+async function saveBirthday(chat: number, text: string) {
+  const db = adminClient();
+  if (text === BTN.skip) {
+    await db.from('bot_state').delete().eq('chat_id', chat);
+    return send(chat, "Mayli. Istalgan vaqtda «🎂 Tug'ilgan kunim» tugmasi orqali kiritishingiz mumkin.");
+  }
+  const iso = parseBirthday(text);
+  if (!iso) return send(chat, "Sanani tushunmadim 🙂 Iltimos, <b>kun.oy.yil</b> ko'rinishida yozing. Masalan: <b>15.03.2002</b>", ASK_BDAY);
+  const { data } = await db.from('leads').update({ birthday: iso }).eq('telegram_chat_id', chat).select('id');
+  await db.from('bot_state').delete().eq('chat_id', chat);
+  if (!data?.length) return send(chat, "Avval «📝 Kursga yozilish» orqali ro'yxatdan o'ting, keyin tug'ilgan kuningizni saqlaymiz.");
+  const [y, mo, d] = iso.split('-');
+  return send(chat, `Rahmat! Tug'ilgan kuningiz saqlandi: <b>${d}.${mo}.${y}</b> 🎉\nShu kuni sizni albatta tabriklaymiz!`);
 }
 
 async function onMessage(msg: any) {
@@ -141,7 +179,24 @@ async function onMessage(msg: any) {
       : `${esc(data.name)}, siz CRM xabarnomalariga ulandingiz.`);
   }
 
-  if (text.startsWith('/start') || text === BTN.back || text === '/menu') return showMenu(chat, from.first_name);
+  if (text.startsWith('/start') || text === BTN.back || text === '/menu') {
+    await adminClient().from('bot_state').delete().eq('chat_id', chat);
+    return showMenu(chat, from.first_name);
+  }
+  const { data: st } = await adminClient().from('bot_state').select('step').eq('chat_id', chat).maybeSingle();
+  // tug'ilgan kun kutilmoqda: menyu tugmasi bosilmagan bo'lsa, yozilgan matn — sana
+  const isMenuBtn = Object.values(BTN).includes(text) && text !== BTN.skip;
+  if (st?.step === 'birthday' && !isMenuBtn) return saveBirthday(chat, text);
+  if (text === BTN.birthday) {
+    const { data: l } = await adminClient().from('leads').select('birthday').eq('telegram_chat_id', chat).limit(1).maybeSingle();
+    if (!l) return send(chat, "Avval «📝 Kursga yozilish» orqali ro'yxatdan o'ting — keyin tug'ilgan kuningizni saqlaymiz.");
+    if (l.birthday) {
+      const [y, mo, d] = String(l.birthday).split('-');
+      await send(chat, `Saqlangan tug'ilgan kuningiz: <b>${d}.${mo}.${y}</b>. O'zgartirish uchun yangisini yozing.`, ASK_BDAY);
+      return adminClient().from('bot_state').upsert({ chat_id: chat, step: 'birthday', updated_at: new Date().toISOString() });
+    }
+    return askBirthday(chat);
+  }
   if (text === BTN.courses || text === '/kurslar') return showCourses(chat);
   if (text === BTN.about) return send(chat, `ℹ️ <b>Biz haqimizda</b>\n\n${esc(await setting('bot_about'))}`);
   if (text === BTN.contacts) return send(chat, `📞 <b>Aloqa</b>\n\n${esc(await setting('bot_contacts'))}`);
@@ -150,8 +205,7 @@ async function onMessage(msg: any) {
   // Raqamni qo'lda yozgan bo'lsa (yozilish jarayonida)
   const digits = text.replace(/\D/g, '');
   if (digits.length >= 9 && digits.length <= 12 && /^[+\d\s()-]+$/.test(text)) {
-    const { data: st } = await adminClient().from('bot_state').select('chat_id').eq('chat_id', chat).maybeSingle();
-    if (st) return register(chat, text, from.first_name, from.last_name);
+    if (st && st.step !== 'birthday') return register(chat, text, from.first_name, from.last_name);
   }
   return send(chat, "Kerakli bo'limni pastdagi menyudan tanlang 👇");
 }

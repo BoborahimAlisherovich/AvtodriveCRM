@@ -1,5 +1,5 @@
 // Telegram: xabarnomalar tarixi va mijozni botga ulash tartibi.
-import { telegram, settings } from '../data/api.js';
+import { telegram, settings, mode } from '../data/api.js';
 import { esc, fmtDT, options, badge } from '../ui.js';
 
 const st = { status: '', audience: '' };
@@ -29,16 +29,16 @@ async function draw() {
     </div>
     <div class="stack">
       <div class="panel panel-pad"><div class="sec-title">Bot</div>
-        <div>@${esc(bot)} ${badge('Ulanmagan (demo)', '#ffa900')}</div>
-        <p class="small muted">Supabase Edge Function ulanganda "Navbatda" xabarlar avtomatik yuboriladi. Xatolar va qayta urinishlar shu yerda ko'rinadi.</p></div>
+        <div>@${esc(bot)} ${mode === 'demo' ? badge('Ulanmagan (demo)', '#ffa900') : badge('Ishlayapti', '#7bd500')}</div>
+        <p class="small muted">"Navbatda" xabarlar har daqiqada avtomatik yuboriladi. Xatolar va qayta urinishlar shu yerda ko'rinadi.</p></div>
       <div class="info"><b>Mijozni botga ulash</b><ol>
         <li>Lead kartasida "Havola yaratish" bosiladi.</li>
         <li>CRM bir martalik, 24 soatlik token yaratadi (bazada faqat hash saqlanadi).</li>
         <li>Mijoz <code>t.me/${esc(bot)}?start=TOKEN</code> havolasini ochib START bosadi.</li>
         <li>Bot tokenni tekshiradi va mijozning chat_id sini CRMga bog'laydi. Token yaroqsiz bo'ladi.</li></ol></div>
       <div class="panel panel-pad"><div class="sec-title">Avtomatik xabarlar</div>
-        <div class="small"><b>Mijozlarga:</b> to'lov muddati yaqinlashgani, qarzdorlik, to'lov qabul qilingani, dars eslatmasi.</div>
-        <div class="small" style="margin-top:6px"><b>Xodimlarga:</b> yangi lead, lead o'tkazilishi, kunlik natijalar, tug'ilgan kunlar.</div>
+        <div class="small"><b>Mijozlarga:</b> to'lov muddati yaqinlashgani, qarzdorlik, to'lov qabul qilingani, tug'ilgan kun tabrigi, lead kartasidan yozilgan xabarlar.</div>
+        <div class="small" style="margin-top:6px"><b>Xodimlarga:</b> yangi lead, lead o'tkazilishi, kunlik natijalar, mijoz tug'ilgan kuni (bir kun oldin va o'sha kuni).</div>
         <div class="small" style="margin-top:6px"><b>FULL ADMIN va ROOPga:</b> qarzdorlik, leadlar va sotuvchilar hisoboti.</div></div>
     </div></div>`;
 }

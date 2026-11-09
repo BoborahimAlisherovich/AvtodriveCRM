@@ -30,6 +30,7 @@ Keyin http://localhost:5173 ni oching.
 5. `supabase/migrations/0006_service_role_grants.sql` — Edge Functions (service_role) uchun jadval huquqlari
 6. `supabase/migrations/0007_bot_menu.sql` — Telegram bot menyusi (Biz haqimizda, Aloqa matnlari)
 7. `supabase/migrations/0008_meta_leads.sql` — Instagram/Facebook reklama formalari (CRM → API bo'limi)
+8. `supabase/migrations/0009_birthday_messages.sql` — tug'ilgan kun tabrigi va CRM'dan bot orqali xabar
 
 ### 3. Autentifikatsiya
 1. **Authentication → Sign In / Providers → Email**: **"Allow new users to sign up"** ni o'chiring

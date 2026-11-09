@@ -341,6 +341,7 @@ export const logs = {
 
 /* ---------------- telegram ---------------- */
 export const telegram = {
+  async sendMessage(leadId, text) { await rpc('send_lead_message', { p_lead: leadId, p_text: text }); },
   async createLink(leadId) {
     const token = await rpc('create_telegram_link', { p_lead: leadId, p_profile: null });
     return `https://t.me/${cache.settings.bot_username}?start=${token}`;

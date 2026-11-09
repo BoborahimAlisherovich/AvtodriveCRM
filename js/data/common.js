@@ -35,6 +35,7 @@ export const ACTIONS = {
   'course.edit': 'Kurs tahrirlandi',
   'settings.edit': "Sozlamalar o'zgardi",
   'tg.link': 'Telegram havola yaratildi',
+  'tg.message': 'Telegram xabar yuborildi',
 };
 
 export const PAY_STATUS = {

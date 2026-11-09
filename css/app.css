@@ -389,7 +389,15 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   .content { padding: 4px 16px 24px; }
   .bulk { top: 110px; }
   .form-grid { grid-template-columns: 1fr; }
-  .kcol { flex-basis: 82vw; max-height: none; }
+  .kanban { gap: 8px; scroll-snap-type: x proximity; margin: 0 -16px; padding: 0 16px 12px; scroll-padding: 0 16px; }
+  .kcol { flex: 0 0 min(64vw, 250px); max-height: none; scroll-snap-align: start; }
+  .khead { height: 34px; padding: 0 8px; font-size: 12px; }
+  .kcard { padding: 8px 10px; margin-bottom: 6px; }
+  .kc-name { font-size: 13px; }
+  .kc-phone { font-size: 12px; }
+  .kc-meta, .kc-foot { margin-top: 4px; font-size: 11px; }
+  .kc-times { margin-top: 4px; font-size: 10.5px; }
+  .kc-check { width: 20px; height: 20px; top: 6px; right: 6px; }
   .toolbar .search { max-width: none; flex-basis: 100%; }
   .drawer-head, .drawer-body { padding-left: 16px; padding-right: 16px; }
   .top-right .btn .lbl { display: none; }

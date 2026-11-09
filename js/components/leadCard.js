@@ -164,7 +164,12 @@ export async function openLead(id, onChange) {
 
         <div class="panel panel-pad">
           <div class="sec-title">Telegram</div>
-          ${lead.telegram_chat_id ? `<div>${badge('Botga ulangan', '#7bd500')}</div>`
+          ${lead.telegram_chat_id ? `<div>${badge('Botga ulangan', '#7bd500')}</div>
+               <form data-tgmsg style="display:flex;gap:8px;align-items:flex-start;margin-top:10px">
+                 <textarea class="inp" name="text" rows="2" placeholder="Mijozga bot orqali xabar..."></textarea>
+                 <button class="btn primary" type="submit">Yuborish</button>
+               </form>
+               <div class="small muted">Xabar 1 daqiqa ichida yetkaziladi. Holatini «Telegram» bo'limida ko'rasiz.</div>`
             : `<div class="small muted">Mijoz botga ulanmagan. Bir martalik havola yarating va mijozga yuboring (24 soat amal qiladi).</div>
                <div data-link></div><button class="btn sm blue" data-act="tglink" style="margin-top:8px">${icon('link')} Havola yaratish</button>`}
         </div>
@@ -207,6 +212,14 @@ export async function openLead(id, onChange) {
       try { await leads.addNote(id, noteForm.text.value); toast("Izoh qo'shildi"); after(); } catch (ex) { toast(ex.message, 'err'); }
     };
     noteForm.text.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) noteForm.requestSubmit(); };
+    const tgForm = $('[data-tgmsg]', d);
+    if (tgForm) tgForm.onsubmit = async e => {
+      e.preventDefault();
+      const btn = $('button', tgForm);
+      btn.disabled = true;
+      try { await telegram.sendMessage(id, tgForm.text.value); toast('Xabar navbatga qo\'yildi'); tgForm.text.value = ''; }
+      catch (ex) { toast(ex.message, 'err'); } finally { btn.disabled = false; }
+    };
     d.onclick = async e => {
       if (e.target.closest('[data-close]')) return closeDrawer();
       const pay = e.target.closest('[data-pay]');
