@@ -18,3 +18,12 @@ select cron.schedule('bxcrm-notify-dispatch', '* * * * *', $$
     body := '{}'::jsonb
   )
 $$);
+
+-- Har daqiqada — Instagram/Facebook reklama leadlari: navbatni qayta ishlash va har 10 daqiqada Meta bilan sinxronlash
+select cron.schedule('bxcrm-meta-leads', '* * * * *', $$
+  select net.http_post(
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/meta-leads',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET>'),
+    body := '{}'::jsonb
+  )
+$$);

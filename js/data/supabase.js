@@ -353,6 +353,26 @@ export const telegram = {
   },
 };
 
+/* ---------------- tashqi API (Instagram / Facebook reklama formalari) ---------------- */
+async function invokeFn(name, body) {
+  const { data, error } = await sb.functions.invoke(name, { body });
+  if (error) {
+    let msg = error.message;
+    try { msg = (await error.context.json()).error || msg; } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  return data;
+}
+export const integrations = {
+  available: true,
+  webhookUrl: `${SUPABASE_URL}/functions/v1/meta-leads`,
+  metaStatus() { return rpc('integration_meta_status'); },
+  async metaSave(p) { await rpc('integration_meta_save', { p }); },
+  metaRetry() { return rpc('integration_meta_retry'); },
+  metaTest() { return invokeFn('meta-leads', { action: 'test' }); },
+  metaSync() { return invokeFn('meta-leads', { action: 'sync' }); },
+};
+
 /* ---------------- sozlamalar ---------------- */
 export const settings = {
   get() { return JSON.parse(JSON.stringify(cache.settings)); },

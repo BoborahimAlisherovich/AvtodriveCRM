@@ -8,5 +8,8 @@ verify_jwt = false
 [functions.lead-intake]
 verify_jwt = false
 
+[functions.meta-leads]
+verify_jwt = false
+
 [functions.invite-staff]
 verify_jwt = true

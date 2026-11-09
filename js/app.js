@@ -14,6 +14,7 @@ import * as logs from './pages/logs.js';
 import * as courses from './pages/courses.js';
 import * as telegram from './pages/telegram.js';
 import * as settings from './pages/settings.js';
+import * as api from './pages/integrations.js';
 
 const ALL = ['admin', 'roop', 'seller'];
 const MENU = [
@@ -26,6 +27,7 @@ const MENU = [
   { id: 'logs', title: 'Activity Log', icon: 'log', roles: ALL, page: logs },
   { id: 'courses', title: 'Kurslar', icon: 'courses', roles: ALL, page: courses },
   { id: 'telegram', title: 'Telegram', icon: 'telegram', roles: ['admin', 'roop'], page: telegram },
+  { id: 'api', title: 'API', icon: 'link', roles: ['admin'], page: api },
   { id: 'settings', title: 'Sozlamalar', icon: 'settings', roles: ['admin'], page: settings },
 ];
 

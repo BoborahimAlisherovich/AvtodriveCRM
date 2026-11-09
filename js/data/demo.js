@@ -755,6 +755,9 @@ export const telegram = {
   },
 };
 
+/* ---------------- tashqi API — faqat Supabase rejimida ---------------- */
+export const integrations = { available: false };
+
 /* ---------------- sozlamalar ---------------- */
 export const settings = {
   get() { return JSON.parse(JSON.stringify(db.settings)); },

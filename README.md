@@ -29,6 +29,7 @@ Keyin http://localhost:5173 ni oching.
 4. `supabase/migrations/0005_status_changed_at.sql` — Kanban: bosqichga o'tkazilgan vaqt, "Sizga o'tkazilgan" belgisi
 5. `supabase/migrations/0006_service_role_grants.sql` — Edge Functions (service_role) uchun jadval huquqlari
 6. `supabase/migrations/0007_bot_menu.sql` — Telegram bot menyusi (Biz haqimizda, Aloqa matnlari)
+7. `supabase/migrations/0008_meta_leads.sql` — Instagram/Facebook reklama formalari (CRM → API bo'limi)
 
 ### 3. Autentifikatsiya
 1. **Authentication → Sign In / Providers → Email**: **"Allow new users to sign up"** ni o'chiring
@@ -49,7 +50,7 @@ npx supabase login
 npx supabase link --project-ref <PROJECT_REF>
 ```
 ```bash
-npx supabase functions deploy invite-staff telegram-webhook notify-dispatch lead-intake
+npx supabase functions deploy invite-staff telegram-webhook notify-dispatch lead-intake meta-leads
 ```
 ```bash
 npx supabase secrets set TELEGRAM_BOT_TOKEN=<token> TELEGRAM_WEBHOOK_SECRET=<tasodifiy-uzun-satr> CRON_SECRET=<tasodifiy-uzun-satr> INTAKE_API_KEY=<tasodifiy-uzun-satr>

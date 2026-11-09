@@ -8,7 +8,7 @@ const impl = SUPABASE_URL && SUPABASE_ANON_KEY ? cloud : demo;
 
 export const {
   mode, init, signIn, signOut, demoUsers, resetDemo, badges,
-  leads, stages, courses, staff, payments, attendance, reports, dashboard, logs, telegram, settings,
+  leads, stages, courses, staff, payments, attendance, reports, dashboard, logs, telegram, settings, integrations,
   profileName, isAtWork, backupTables,
 } = impl;
 

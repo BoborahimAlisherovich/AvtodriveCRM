@@ -383,3 +383,16 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   .list-row .grow { flex: 1 1 150px; }
   .list-row > .seg { width: 100%; overflow-x: auto; }
 }
+
+/* ---------- API (integratsiyalar) ---------- */
+.api-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.api-stat { background: var(--line2); border-radius: 8px; padding: 10px 12px; }
+.api-stat b { display: block; font-size: 22px; line-height: 1.2; }
+.api-stat span { font-size: 12px; color: var(--muted); }
+.api-stat.ok b { color: #3a9a00; } .api-stat.bad b { color: #e3413c; } .api-stat.wait b { color: #c27b00; }
+.api-state { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.api-state::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #9aa3ab; }
+.api-state.on::before { background: #7bd500; } .api-state.err::before { background: #e3413c; }
+.copy-row { display: flex; gap: 6px; } .copy-row .inp { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.api-steps { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+.api-err { background: #ffe9e8; color: #b3261e; border-radius: 6px; padding: 8px 10px; font-size: 13px; }
