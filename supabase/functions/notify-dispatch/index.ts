@@ -9,14 +9,19 @@ Deno.serve(async req => {
     return json({ error: 'forbidden' }, 403);
   }
   const db = adminClient();
+  // bitta chaqiruvda 50 soniyagacha ishlaydi (~1000 xabar), qolgani keyingi daqiqada
+  const until = Date.now() + 50_000;
+  let sent = 0, failed = 0;
+  while (Date.now() < until) {
   const { data: queue, error } = await db.from('notifications')
     .select('id, chat_id, text, attempts')
     .eq('status', 'queued').lte('send_after', new Date().toISOString())
-    .order('created_at').limit(50);
+    .order('created_at').limit(100);
   if (error) return json({ error: error.message }, 500);
+  if (!queue?.length) break;
 
-  let sent = 0, failed = 0;
-  for (const n of queue ?? []) {
+  for (const n of queue) {
+    if (Date.now() >= until) break;
     try {
       if (!n.chat_id) throw new Error('Telegram botga ulanmagan');
       await sendTelegram(n.chat_id, n.text);
@@ -34,6 +39,8 @@ Deno.serve(async req => {
       failed++;
     }
     await new Promise(r => setTimeout(r, 40)); // Telegram limiti: ~30 xabar/soniya
+  }
+  if (queue.length < 100) break;
   }
   return json({ sent, failed });
 });

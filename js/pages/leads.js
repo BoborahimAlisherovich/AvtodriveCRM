@@ -29,20 +29,23 @@ function drawToolbar() {
   const all = can('leads.all');
   const sellers = staff.sellers();
   const src = settings.get().sources;
-  const anyFilter = st.owner || st.status || st.source || st.course || st.pay || st.from || st.to || st.q;
-  root.innerHTML = `<div class="toolbar">
+  const nFilter = [st.owner, st.status, st.source, st.course, st.pay, st.from, st.to].filter(Boolean).length;
+  const anyFilter = nFilter || st.q;
+  // telefonda filtrlar yig'ilgan turadi — «Filtr» tugmasi ochadi
+  root.innerHTML = `<div class="toolbar ${st.showFx ? 'show-fx' : ''}">
       <div class="seg"><button data-view="kanban" class="${st.view === 'kanban' ? 'on' : ''}">${icon('kanban')} Kanban</button><button data-view="table" class="${st.view === 'table' ? 'on' : ''}">${icon('table')} Jadval</button></div>
       <div class="search">${icon('search')}<input class="inp" data-f="q" type="search" placeholder="Ism, familiya yoki telefon" value="${esc(st.q)}"></div>
-      ${all ? `<select class="sel" data-f="owner">${options([['none', 'Biriktirilmagan'], ...sellers.map(s => [s.id, s.full_name])], st.owner, { empty: 'Barcha sotuvchilar' })}</select>` : ''}
-      ${st.view === 'table' ? `<select class="sel" data-f="status">${options(stages.list().map(s => [s.id, s.name]), st.status, { empty: 'Barcha statuslar' })}</select>` : ''}
-      <select class="sel" data-f="source">${options(src, st.source, { empty: 'Barcha manbalar' })}</select>
-      <select class="sel" data-f="course">${options(courses.list({ includeInactive: true }).map(c => [c.id, c.name]), st.course, { empty: 'Barcha toifalar' })}</select>
-      <select class="sel" data-f="pay">${options([['none', "To'lov yo'q"], ...Object.entries(PAY_STATUS).filter(([k]) => k !== 'bekor').map(([k, v]) => [k, v.name])], st.pay, { empty: "To'lov holati" })}</select>
-      <input class="inp" type="date" data-f="from" value="${esc(st.from)}" title="Sanadan"><input class="inp" type="date" data-f="to" value="${esc(st.to)}" title="Sanagacha">
-      ${anyFilter ? `<button class="btn light sm" data-act="clear">Tozalash</button>` : ''}
+      <button class="btn fx-toggle" data-act="fx">${icon('search')} Filtr${nFilter ? ` <span class="fx-n">${nFilter}</span>` : ''}</button>
+      ${all ? `<select class="sel fx" data-f="owner">${options([['none', 'Biriktirilmagan'], ...sellers.map(s => [s.id, s.full_name])], st.owner, { empty: 'Barcha sotuvchilar' })}</select>` : ''}
+      ${st.view === 'table' ? `<select class="sel fx" data-f="status">${options(stages.list().map(s => [s.id, s.name]), st.status, { empty: 'Barcha statuslar' })}</select>` : ''}
+      <select class="sel fx" data-f="source">${options(src, st.source, { empty: 'Barcha manbalar' })}</select>
+      <select class="sel fx" data-f="course">${options(courses.list({ includeInactive: true }).map(c => [c.id, c.name]), st.course, { empty: 'Barcha toifalar' })}</select>
+      <select class="sel fx" data-f="pay">${options([['none', "To'lov yo'q"], ...Object.entries(PAY_STATUS).filter(([k]) => k !== 'bekor').map(([k, v]) => [k, v.name])], st.pay, { empty: "To'lov holati" })}</select>
+      <input class="inp fx" type="date" data-f="from" value="${esc(st.from)}" title="Sanadan"><input class="inp fx" type="date" data-f="to" value="${esc(st.to)}" title="Sanagacha">
+      ${anyFilter ? `<button class="btn light sm fx" data-act="clear">Tozalash</button>` : ''}
       <div class="grow"></div>
-      ${can('leads.import') ? `<button class="btn" data-act="import" title="Excel'dan yuklash">${icon('upload')} Import</button>` : ''}
-      <button class="btn" data-act="export" title="Excel'ga yuklab olish">${icon('excel')} Excel</button>
+      ${can('leads.import') ? `<button class="btn fx" data-act="import" title="Excel'dan yuklash">${icon('upload')} Import</button>` : ''}
+      <button class="btn fx" data-act="export" title="Excel'ga yuklab olish">${icon('excel')} Excel</button>
     </div><div data-body></div>`;
 }
 
@@ -130,7 +133,7 @@ async function bulkMoveModal() {
       if (!v.stage && !v.to) throw new Error('Bosqich yoki sotuvchini tanlang');
       let moved = 0, transferred = 0;
       if (v.to) transferred = await leads.transfer(ids, v.to, v.reason);
-      if (v.stage) for (const id of ids) { await leads.setStatus(id, v.stage); moved++; }
+      if (v.stage) { await saveStatuses(ids, v.stage); moved = ids.length; }
       return { moved, transferred, stage: v.stage };
     },
   });
@@ -144,8 +147,39 @@ async function bulkMoveModal() {
   refresh();
 }
 
+// Kanban'dagi leadlar (id → lead) — kartani serverni kutmasdan ko'chirish uchun
+const rowsById = new Map();
+
+// Kartalarni darhol yangi ustun boshiga ko'chiradi (sahifani qayta yuklamasdan)
+function moveCardsLocally(ids, stage) {
+  const zone = $(`[data-drop="${CSS.escape(stage.id)}"]`, root);
+  if (!zone) return false;
+  const now = new Date().toISOString();
+  const bump = (el, d) => { const c = el?.closest('.kcol')?.querySelector('.kcount'); if (c) c.textContent = Math.max(0, Number(c.textContent) + d); };
+  for (const id of [...ids].reverse()) {
+    const l = rowsById.get(id);
+    const el = $(`.kcard[data-id="${CSS.escape(id)}"]`, root);
+    if (!l || !el) continue;
+    if (l.status_id === stage.id) continue;
+    bump(el, -1);
+    el.remove();
+    Object.assign(l, { status_id: stage.id, status: stage, status_changed_at: now });
+    zone.querySelector(':scope > .muted')?.remove();
+    zone.insertAdjacentHTML('afterbegin', card(l));
+    bump(zone, 1);
+  }
+  return true;
+}
+
+// Serverga saqlash: bir vaqtda 8 tadan parallel
+async function saveStatuses(ids, stageId) {
+  for (let i = 0; i < ids.length; i += 8) await Promise.all(ids.slice(i, i + 8).map(id => leads.setStatus(id, stageId)));
+}
+
 async function kanbanHtml() {
   const cols = await leads.kanban(filters(), st.limits);
+  rowsById.clear();
+  for (const c of cols) for (const r of c.rows) rowsById.set(r.id, r);
   const manage = can('stages.manage');
   return `<div data-kbulk>${kanbanBulkHtml()}</div><div class="kanban">${cols.map(c => `<section class="kcol">
       <header class="khead" style="--c:${esc(c.stage.color)}">${c.rows.length ? `<input type="checkbox" class="kh-check" data-colsel="${c.stage.id}" title="Ustundagilarni belgilash" ${c.rows.every(r => st.sel.has(r.id)) ? 'checked' : ''}>` : ''}<span class="kname" title="${esc(c.stage.name)}">${esc(c.stage.name)}</span><span class="kcount">${c.total}</span>
@@ -183,24 +217,34 @@ function bindDnD(body) {
     dragId = null;
     const stage = stages.get(zone.dataset.drop);
     // belgilangan kartani sudrasa — barcha belgilanganlar birga o'tadi
+    $$('.kbody.over', body).forEach(x => x.classList.remove('over'));
     if (st.sel.has(id) && st.sel.size > 1) {
-      const n = st.sel.size;
+      const ids = [...st.sel];
+      st.sel.clear();
+      moveCardsLocally(ids, stage);
+      updateKanbanBulk();
       try {
-        for (const x of st.sel) await leads.setStatus(x, stage.id);
-        toast(`${n} ta lead "${stage.name}" bosqichiga o'tkazildi`);
-        st.sel.clear();
+        await saveStatuses(ids, stage.id);
+        toast(`${ids.length} ta lead "${stage.name}" bosqichiga o'tkazildi`);
         changed();
-      } catch (ex) { toast(ex.message, 'err'); }
-      return refresh();
+      } catch (ex) { toast(ex.message, 'err'); refresh(); }
+      return;
     }
+    const before = { ...(rowsById.get(id) || {}) };
+    if (before.status_id === stage.id) return;
+    // 1) darhol ko'chiramiz, 2) orqa fonda saqlaymiz; xato bo'lsa — qaytaramiz
+    if (!moveCardsLocally([id], stage)) await refresh();
     try {
-      const before = (await leads.get(id));
       await leads.setStatus(id, stage.id);
       changed();
-      await refresh();
-      if (await askCategory(before, stage)) await refresh();
-      if (stage.kind === 'won' && !before.payments.length && can('payments.create')) {
-        createPaymentModal({ leadId: id, onDone: refresh });
+      if (before.id && await askCategory(before, stage)) {
+        const l = rowsById.get(id);
+        const fresh = await leads.get(id);
+        if (l) { Object.assign(l, { course_id: fresh.course_id, course_name: fresh.course_name }); $(`.kcard[data-id="${CSS.escape(id)}"]`, root)?.replaceWith(Object.assign(document.createElement('template'), { innerHTML: card(l) }).content); }
+      }
+      if (stage.kind === 'won' && can('payments.create')) {
+        const full = await leads.get(id);
+        if (!full.payments.length) createPaymentModal({ leadId: id, onDone: refresh });
       }
     } catch (ex) { toast(ex.message, 'err'); refresh(); }
   });
@@ -390,6 +434,7 @@ async function onClick(e) {
   const act = t.closest('[data-act]')?.dataset.act;
   if (act === 'new') newLeadModal(refresh);
   if (act === 'clear') { Object.assign(st, { q: '', owner: '', status: '', source: '', course: '', pay: '', from: '', to: '', page: 1 }); drawToolbar(); drawBody(); }
+  if (act === 'fx') { st.showFx = !st.showFx; $('.toolbar', root)?.classList.toggle('show-fx', st.showFx); return; }
   if (act === 'addstage') addStage();
   if (act === 'export') doExport();
   if (act === 'import') doImport();

@@ -15,7 +15,8 @@ select cron.schedule('bxcrm-notify-dispatch', '* * * * *', $$
   select net.http_post(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/notify-dispatch',
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET>'),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 55000
   )
 $$);
 
@@ -24,6 +25,7 @@ select cron.schedule('bxcrm-meta-leads', '* * * * *', $$
   select net.http_post(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/meta-leads',
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET>'),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 55000
   )
 $$);

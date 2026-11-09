@@ -363,7 +363,21 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 @media (max-width: 1100px) {
   .grid2 { grid-template-columns: 1fr; }
 }
+.fx-toggle { display: none; }
+.fx-n { background: var(--accent-d); color: #fff; border-radius: 9px; padding: 0 6px; font-size: 11px; }
 @media (max-width: 900px) {
+  /* telefonda filtrlar yig'iladi */
+  .fx-toggle { display: inline-flex; }
+  .toolbar .fx { display: none; }
+  .toolbar.show-fx .fx { display: inline-flex; }
+  .toolbar.show-fx select.fx, .toolbar.show-fx input.fx { display: block; flex: 1 1 140px; min-width: 0; }
+  .toolbar .search { flex: 1 1 160px; min-width: 0; }
+  .toolbar .grow { display: none; }
+  /* kanban kartasi: checkbox barmoq bilan bosishga qulay */
+  .kc-check { width: 22px; height: 22px; top: 8px; right: 8px; }
+  .kh-check { width: 20px; height: 20px; }
+  .kcard .kc-name { padding-right: 30px; }
+  .bulk.bulk-float { top: auto; bottom: 16px; left: 12px; right: 12px; transform: none; justify-content: space-between; white-space: normal; }
   .side { transform: translateX(-100%); transition: transform .18s; }
   .side.open { transform: none; box-shadow: 0 0 40px rgba(0, 0, 0, .4); }
   .main { margin-left: 0; }

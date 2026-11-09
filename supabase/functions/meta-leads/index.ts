@@ -92,7 +92,7 @@ async function processEvent(cfg: Cfg, ev: any) {
     const { data, error } = await db().rpc('intake_lead', { p });
     if (error) throw new Error(error.message);
     await db().from('meta_lead_events').update({
-      status: 'done', lead_id: data?.id ?? null, duplicate: !!data?.duplicate, error: null, payload: lead,
+      status: 'done', lead_id: data?.id ?? null, duplicate: !!data?.duplicate, error: null, payload: null,
       platform: lead.platform ?? null, form_id: lead.form_id ?? ev.form_id ?? null, ad_id: lead.ad_id ?? ev.ad_id ?? null,
       attempts: (ev.attempts ?? 0) + 1, processed_at: new Date().toISOString(),
     }).eq('leadgen_id', id);
@@ -106,12 +106,21 @@ async function processEvent(cfg: Cfg, ev: any) {
   }
 }
 
+// Navbat: bir vaqtda 6 tadan, 45 soniya ichida imkon qadar ko'p (keyingisi — keyingi daqiqada)
 async function processQueue(cfg: Cfg, onlyIds?: string[]) {
-  let q = db().from('meta_lead_events').select('*').eq('status', 'queued').lt('attempts', MAX_ATTEMPTS).order('received_at').limit(50);
-  if (onlyIds?.length) q = q.in('leadgen_id', onlyIds);
-  const { data } = await q;
+  const until = Date.now() + 45_000;
   let ok = 0, fail = 0;
-  for (const ev of data ?? []) (await processEvent(cfg, ev)) ? ok++ : fail++;
+  while (Date.now() < until) {
+    let q = db().from('meta_lead_events').select('*').eq('status', 'queued').lt('attempts', MAX_ATTEMPTS).order('received_at').limit(60);
+    if (onlyIds?.length) q = q.in('leadgen_id', onlyIds);
+    const { data } = await q;
+    if (!data?.length) break;
+    for (let i = 0; i < data.length && Date.now() < until; i += 6) {
+      const res = await Promise.all(data.slice(i, i + 6).map(ev => processEvent(cfg, ev)));
+      for (const r of res) r ? ok++ : fail++;
+    }
+    if (onlyIds?.length || data.length < 60) break;
+  }
   return { ok, fail };
 }
 
