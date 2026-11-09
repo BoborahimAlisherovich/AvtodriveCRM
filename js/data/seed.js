@@ -76,6 +76,8 @@ export function seed() {
     require_attendance: true,
     seller_can_transfer: true,
     remind_days_before: 3,
+    bot_about: "Biz — haydovchilik guvohnomasi (prava) olishga tayyorlovchi o'quv markazimiz.",
+    bot_contacts: "Manzil va telefon raqami tez orada qo'shiladi.",
   };
 
   const leads = [], lead_notes = [], lead_assignments = [], payments = [], payment_history = [], activity_logs = [], notifications = [];

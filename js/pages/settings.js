@@ -24,6 +24,8 @@ function draw() {
         <div class="fld"><label>Markaz nomi</label><input class="inp" name="center_name" value="${esc(s.center_name)}"></div>
         <div class="fld"><label>Telegram bot (username)</label><input class="inp" name="bot_username" value="${esc(s.bot_username)}"></div>
         <div class="fld"><label>To'lov eslatmasi (necha kun oldin)</label><input class="inp" type="number" min="0" max="30" name="remind_days_before" value="${s.remind_days_before}"></div>
+        <div class="fld full"><label>Telegram bot: «Biz haqimizda» matni</label><textarea class="inp" name="bot_about" rows="4">${esc(s.bot_about || '')}</textarea></div>
+        <div class="fld full"><label>Telegram bot: «Aloqa» matni (manzil, telefon, ish vaqti)</label><textarea class="inp" name="bot_contacts" rows="3">${esc(s.bot_contacts || '')}</textarea></div>
         <div class="fld full"><label>Lead manbalari (har biri yangi qatorda)</label><textarea class="inp" name="sources" rows="6">${esc(s.sources.join('\n'))}</textarea></div>
       </div>
       <div class="sec-title" style="margin:6px 0 0">Lead taqsimoti</div>
@@ -52,6 +54,7 @@ function draw() {
       await settings.save({
         center_name: f.center_name.value.trim(), bot_username: f.bot_username.value.trim().replace(/^@/, ''),
         remind_days_before: Number(f.remind_days_before.value) || 0,
+        bot_about: f.bot_about.value.trim(), bot_contacts: f.bot_contacts.value.trim(),
         sources: f.sources.value.split('\n').map(x => x.trim()).filter(Boolean),
         require_attendance: f.require_attendance.checked, seller_can_transfer: f.seller_can_transfer.checked,
         rr_order: order,
