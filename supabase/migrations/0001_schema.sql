@@ -1,4 +1,4 @@
--- B va Express CRM — 1. Jadvallar, indekslar, ko'rinishlar (views)
+-- AvtodriveCRM — 1. Jadvallar, indekslar, ko'rinishlar (views)
 -- Supabase SQL Editor'da tartib bilan ishga tushiring: 0001 → 0002 → 0003 → 0004.
 
 create schema if not exists extensions;
@@ -266,8 +266,8 @@ insert into public.lead_statuses (id, name, color, kind, sort, is_system) values
   ('st_lost', 'Bekor qilindi', '#9aa3ab', 'lost', 10, true);
 
 insert into public.settings (key, value) values
-  ('center_name', '"B va Express"'),
-  ('bot_username', '"BvaExpressBot"'),
+  ('center_name', '"AvtodriveCRM"'),
+  ('bot_username', '"Avtodrive_roobot"'),
   ('sources', '["Instagram reklama","Telegram","Sayt","Telefon","Qo''lda kiritish","Excel import","Tavsiya"]'),
   ('rr_order', '[]'),
   ('rr_last', 'null'),

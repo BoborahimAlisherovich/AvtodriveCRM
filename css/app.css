@@ -1,4 +1,4 @@
-/* B va Express CRM — Bitrix24 uslubidagi sodda interfeys */
+/* AvtodriveCRM — Bitrix24 uslubidagi sodda interfeys */
 :root {
   --bg: #eef2f4;
   --panel: #fff;
@@ -404,6 +404,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   .list-row { flex-wrap: wrap; padding-left: 16px; padding-right: 16px; }
   .list-row .grow { flex: 1 1 150px; }
   .list-row > .seg { width: 100%; overflow-x: auto; }
+  .att-times { width: 100%; justify-content: space-between; }
+  .att-worked { min-width: 0; }
 }
 
 /* ---------- API (integratsiyalar) ---------- */
@@ -418,3 +420,18 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .copy-row { display: flex; gap: 6px; } .copy-row .inp { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .api-steps { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text2); line-height: 1.6; }
 .api-err { background: #ffe9e8; color: #b3261e; border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+
+/* ---------- Davomat ---------- */
+.att-row { flex-wrap: wrap; }
+.att-times { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.att-time { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.att-time .inp { width: 108px; padding: 5px 8px; }
+.att-worked { min-width: 110px; font-weight: 600; font-size: 13px; text-align: right; }
+tfoot td { border-top: 2px solid var(--line); background: var(--line2); }
+
+/* ---------- To'lov ---------- */
+.pay-progress { height: 10px; border-radius: 6px; background: var(--line2); overflow: hidden; }
+.pay-progress > i { display: block; height: 100%; background: linear-gradient(90deg, #7bd500, #3cc3a6); border-radius: 6px; }
+.pay-preview { border-radius: 8px; padding: 10px 12px; background: #fff8e8; color: #8a5a00; font-size: 14px; }
+.pay-preview.full { background: #e6f7d9; color: #2f6b00; }
+.pay-quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }

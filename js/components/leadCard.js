@@ -156,9 +156,9 @@ export async function openLead(id, onChange) {
           <div class="sec-title" style="display:flex;align-items:center">To'lovlar
             ${can('payments.create') ? `<button class="btn sm primary" data-act="newpay" style="margin-left:auto">${icon('plus')} To'lov</button>` : ''}</div>
           ${lead.payments.length ? lead.payments.map(p => `<div class="pay-row">
-              <div style="flex:1;min-width:160px"><a href="#" data-pay="${p.id}"><b>${esc(p.course_name || "To'lov")}</b></a><div class="small muted">${money(p.paid)} / ${money(p.total)}${p.due ? ' · muddat ' + esc(p.due.split('-').reverse().join('.')) : ''}</div></div>
+              <div style="flex:1;min-width:160px"><a href="#" data-pay="${p.id}"><b>${esc(p.course_name || "To'lov")}</b></a><div class="small muted">To'langan ${money(p.paid)} / ${money(p.total)}${p.remaining > 0 && p.status !== 'bekor' ? ` · <b class="${p.status === 'qarzdor' ? 'red' : ''}">qolgan qarz ${money(p.remaining)}</b>` : ''}${p.due && p.remaining > 0 ? ' · muddat ' + esc(p.due.split('-').reverse().join('.')) : ''}</div></div>
               ${badge(PAY_STATUS[p.status].name, PAY_STATUS[p.status].color)}
-              ${p.remaining > 0 && p.status !== 'bekor' ? `<button class="btn sm" data-receive="${p.id}">Qabul qilish</button>` : ''}
+              ${p.remaining > 0 && p.status !== 'bekor' ? `<button class="btn sm primary" data-receive="${p.id}">To'lov qilish</button>` : ''}
             </div>`).join('') : '<div class="muted small">To\'lov yo\'q</div>'}
         </div>
 

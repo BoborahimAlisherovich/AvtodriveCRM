@@ -76,18 +76,42 @@ export async function createPaymentModal({ leadId, lead: known = null, onDone } 
 
 export function receiveModal(p, onDone) {
   return modal({
-    title: "To'lov qabul qilish",
-    submit: 'Qabul qilish',
-    body: `<p style="margin:0 0 12px"><b>${esc(p.lead_name)}</b> · ${esc(p.course_name || '')}<br>
-      <span class="muted">Umumiy: ${money(p.total)} · To'langan: ${money(p.paid)} · </span><b>Qolgan: ${money(p.remaining)}</b></p>
+    title: "To'lov qilish",
+    submit: "To'lovni saqlash",
+    body: `<p style="margin:0 0 10px"><b>${esc(p.lead_name)}</b> · ${esc(p.course_name || '')}</p>
+      <div class="kpis" style="margin:0 0 12px">
+        <div class="kpi"><div class="t">Umumiy</div><div class="v money">${money(p.total)}</div></div>
+        <div class="kpi" style="--c:var(--ok)"><div class="t">To'langan</div><div class="v money">${money(p.paid)}</div></div>
+        <div class="kpi" style="--c:var(--danger)"><div class="t">Qolgan qarz</div><div class="v money">${money(p.remaining)}</div></div>
+      </div>
       <div class="form-grid">
-        <div class="fld"><label class="req">Summa</label><input class="inp" name="amount" type="number" min="0" step="1000" max="${p.remaining}" value="${p.remaining}" autofocus></div>
-        <div class="fld"><label>Keyingi to'lov sanasi</label><input class="inp" name="next_date" type="date" value="${esc(p.next_date || '')}"><div class="hint">Qarz qolsa to'ldiring</div></div>
-        <div class="fld full"><label>Izoh</label><input class="inp" name="note" placeholder="Masalan: naqd, Click, Payme"></div>
+        <div class="fld full"><label class="req">To'lov miqdori (so'm)</label><input class="inp" name="amount" type="number" min="1" step="1000" max="${p.remaining}" placeholder="Masalan: 500000" autofocus>
+          <div class="pay-quick"><button type="button" class="btn sm light" data-amt="${p.remaining}">Qolgan hammasi — ${money(p.remaining)}</button>${p.remaining >= 2000 ? `<button type="button" class="btn sm light" data-amt="${Math.round(p.remaining / 2 / 1000) * 1000}">Yarmi</button>` : ''}</div></div>
+        <div class="fld full"><div class="pay-preview" data-preview>Miqdorni kiriting — qolgan qarz shu yerda hisoblanadi.</div></div>
+        <div class="fld" data-next><label>Keyingi to'lov sanasi</label><input class="inp" name="next_date" type="date" value="${esc(p.next_date || '')}"><div class="hint">Qarz qolsa — shu sanagacha "Boshlang'ich to'lov", keyin "Qarzdorlik"</div></div>
+        <div class="fld"><label>Izoh</label><input class="inp" name="note" placeholder="Naqd, Click, Payme..."></div>
       </div>`,
+    onMount(form) {
+      const pv = form.querySelector('[data-preview]');
+      const calc = () => {
+        const a = Math.round(Number(form.amount.value) || 0);
+        const left = p.remaining - a;
+        form.querySelector('[data-next]').hidden = left <= 0 && a > 0;
+        pv.className = 'pay-preview' + (a > 0 && left <= 0 ? ' full' : '');
+        pv.innerHTML = !a ? "Miqdorni kiriting — qolgan qarz shu yerda hisoblanadi."
+          : a > p.remaining ? `<b>Qolgan qarzdan ko'p!</b> Ko'pi bilan ${money(p.remaining)} kiritish mumkin.`
+          : left <= 0 ? "✅ To'liq to'lanadi — status <b>«To'langan»</b> bo'ladi."
+          : `Bu to'lovdan keyin qolgan qarz: <b>${money(left)}</b> (${Math.round((p.paid + a) / p.total * 100)}% to'langan)`;
+      };
+      form.amount.addEventListener('input', calc);
+      form.addEventListener('click', e => { const b = e.target.closest('[data-amt]'); if (b) { form.amount.value = b.dataset.amt; calc(); } });
+    },
     async onSubmit(v) {
+      if (!(Number(v.amount) > 0)) throw new Error("To'lov miqdorini kiriting");
+      if (Number(v.amount) > p.remaining) throw new Error(`Qolgan qarz ${money(p.remaining)}. Undan ko'p kiritib bo'lmaydi`);
       const r = await payments.receive(p.id, v);
-      toast(`${money(v.amount)} qabul qilindi`);
+      const left = p.remaining - Number(v.amount);
+      toast(left > 0 ? `${money(v.amount)} qabul qilindi · qolgan qarz ${money(left)}` : `${money(v.amount)} qabul qilindi · to'liq to'landi ✅`);
       changed();
       onDone?.(r);
       return r;
@@ -163,8 +187,10 @@ export async function openPayment(id, onChange) {
           <div class="kpi" style="--c:var(--ok)"><div class="t">To'langan</div><div class="v money">${money(p.paid)}</div></div>
           <div class="kpi" style="--c:${p.status === 'qarzdor' ? 'var(--danger)' : 'var(--warn)'}"><div class="t">Qolgan</div><div class="v money">${money(p.remaining)}</div><div class="d">${p.due ? 'Muddat: ' + fmtDate(p.due) : ''}</div></div>
         </div>
+        ${p.status !== 'bekor' ? `<div><div class="pay-progress"><i style="width:${Math.min(100, Math.round(p.paid / p.total * 100))}%"></i></div>
+          <div class="small muted" style="margin-top:4px">${Math.round(p.paid / p.total * 100)}% to'langan${p.remaining > 0 ? ` · qolgan qarz <b>${money(p.remaining)}</b>` : " · to'liq to'langan ✅"}</div></div>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${p.status !== 'bekor' && p.remaining > 0 ? `<button class="btn primary" data-act="receive">${icon('money')} Pul qabul qilish</button>` : ''}
+          ${p.status !== 'bekor' && p.remaining > 0 ? `<button class="btn primary" data-act="receive">${icon('money')} To'lov qilish</button>` : ''}
           ${can('payments.edit') && p.status !== 'bekor' ? `<button class="btn" data-act="edit">${icon('edit')} Tahrirlash</button><button class="btn danger" data-act="cancel">Bekor qilish</button>` : ''}
         </div>
         ${p.cancelled ? `<div class="info" style="background:#fff3f3;border-color:#ffc5c3;color:#a12b27">Bekor qilingan: ${esc(p.cancel_reason)}</div>` : ''}

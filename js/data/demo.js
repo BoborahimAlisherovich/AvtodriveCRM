@@ -2,7 +2,7 @@
 // bo'lsa ishlatiladi. Interfeysi supabase.js bilan bir xil.
 import { db, byId, uid, persist, loadDb, resetDb } from './db.js';
 import { me, can, setSession } from '../auth.js';
-import { today, dayOf, fullName, normPhone, ACTIONS, PAY_STATUS, payStatus, ATT } from './common.js';
+import { today, dayOf, fullName, normPhone, ACTIONS, PAY_STATUS, payStatus, ATT, attendanceReport } from './common.js';
 
 const now = () => new Date().toISOString();
 const inRange = (date, f) => (!f.from || date >= f.from) && (!f.to || date <= f.to);
@@ -608,7 +608,7 @@ export const attendance = {
     need('attendance.view');
     return db.profiles.map(p => {
       const a = db.attendance.find(a => a.profile_id === p.id && a.date === date);
-      return { profile: copy(p), status: a?.status || '', note: a?.note || '', in_rr: p.role === 'seller' && date === today() && isAtWork(p.id, date) };
+      return { profile: copy(p), status: a?.status || '', note: a?.note || '', time_in: a?.time_in || '', time_out: a?.time_out || '', in_rr: p.role === 'seller' && date === today() && isAtWork(p.id, date) };
     });
   },
   todayStatus(profileId) {
@@ -623,6 +623,28 @@ export const attendance = {
     Object.assign(a, { status, note, updated_by: me().id, updated_at: now() });
     if (old !== status) log('att.set', 'attendance', a.id, `${p.full_name} — ${date}`, ATT[old]?.name || '', ATT[status]?.name || '');
     return done();
+  },
+  save(profileId, date, { status = '', time_in = '', time_out = '' } = {}) {
+    need('attendance.edit');
+    const p = byId('profiles', profileId) || fail('Xodim topilmadi');
+    if (time_in && time_out && time_out <= time_in) fail("Ketish vaqti kelish vaqtidan keyin bo'lishi kerak");
+    let a = db.attendance.find(a => a.profile_id === profileId && a.date === date);
+    let st = status || a?.status || '';
+    if (!status && time_in && (!st || st === 'ishda' || st === 'kechikdi')) {
+      const [h, m] = (p.work_start || '09:00').split(':').map(Number);
+      const [ih, im] = time_in.split(':').map(Number);
+      st = ih * 60 + im > h * 60 + m + 5 ? 'kechikdi' : 'ishda';
+    }
+    if (!st) fail('Holatni tanlang yoki kelish vaqtini kiriting');
+    const old = a ? `${ATT[a.status]?.name || ''} ${a.time_in || ''}–${a.time_out || ''}` : '';
+    if (!a) { a = { id: uid('at'), profile_id: profileId, date, note: '' }; db.attendance.push(a); }
+    Object.assign(a, { status: st, time_in: time_in || null, time_out: time_out || null, updated_by: me().id, updated_at: now() });
+    log('att.set', 'attendance', a.id, `${p.full_name} — ${date}`, old, `${ATT[st].name} ${time_in || ''}–${time_out || ''}`);
+    return done();
+  },
+  report(from, to) {
+    need('attendance.view');
+    return Promise.resolve(attendanceReport(db.profiles, db.attendance.filter(a => a.date >= from && a.date <= to)));
   },
   month(ym) {
     need('attendance.view');

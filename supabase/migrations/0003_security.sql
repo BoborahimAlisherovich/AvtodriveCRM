@@ -1,4 +1,4 @@
--- B va Express CRM — 3. Xavfsizlik: RLS siyosatlari va huquqlar.
+-- AvtodriveCRM — 3. Xavfsizlik: RLS siyosatlari va huquqlar.
 -- Qoida: jadvallardan faqat O'QISH mumkin (rolga qarab). YOZISH faqat 0002 dagi
 -- funksiyalar orqali — ular har safar rolni tekshiradi va Activity Logga yozadi.
 

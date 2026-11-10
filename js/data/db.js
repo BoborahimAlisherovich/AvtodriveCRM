@@ -3,7 +3,7 @@
 // Supabase klienti ulanadi, api.js ning interfeysi o'zgarmaydi.
 import { seed } from './seed.js';
 
-const KEY = 'bxcrm.db.v4';
+const KEY = 'bxcrm.db.v5';
 export let db;
 const cache = {};
 

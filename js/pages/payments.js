@@ -52,7 +52,7 @@ async function draw() {
       <td class="nowrap ${p.status === 'qarzdor' ? 'red' : ''}">${fmtDate(p.due)}</td>
       <td>${badge(PAY_STATUS[p.status].name, PAY_STATUS[p.status].color)}</td>
       <td class="nowrap" style="text-align:right">
-        ${p.remaining > 0 && p.status !== 'bekor' ? `<button class="btn sm" data-receive="${p.id}">Qabul</button>` : ''}
+        ${p.remaining > 0 && p.status !== 'bekor' ? `<button class="btn sm primary" data-receive="${p.id}">To'lov</button>` : ''}
         ${editable && p.status !== 'bekor' ? `<button class="icon-btn" data-edit="${p.id}" title="Tahrirlash">${icon('edit')}</button>` : ''}
       </td></tr>`).join('')}
     </tbody></table></div>

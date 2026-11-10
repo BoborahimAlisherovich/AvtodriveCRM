@@ -72,7 +72,7 @@ async function backup() {
   const status = id => db.lead_statuses.find(s => s.id === id)?.name || '';
   const course = id => db.courses.find(c => c.id === id)?.name || '';
   const t = today();
-  await exportExcel(`bvaexpress_crm_zaxira_${t}.xlsx`, [
+  await exportExcel(`avtodrive_crm_zaxira_${t}.xlsx`, [
     { name: 'Leadlar', rows: db.leads.map(l => ({ ID: l.id, Ism: l.first_name, Familiya: l.last_name, Telefon: l.phone, Manba: l.source, "Mas'ul": name(l.owner_id), Status: status(l.status_id), Kurs: course(l.course_id), 'Kelgan sana': fmtDT(l.created_at), 'Keyingi aloqa': fmtDT(l.next_contact_at), Izoh: l.comment })) },
     { name: "To'lovlar", rows: db.payments.map(p => ({ ID: p.id, Mijoz: lname(p.lead_id), Telefon: lead(p.lead_id)?.phone || '', Kurs: course(p.course_id), Umumiy: p.total, "To'langan": p.paid, Qolgan: p.total - p.paid, Muddat: p.due_date, "Keyingi to'lov": p.next_date || '', Status: PAY_STATUS[payStatus(p)].name, Izoh: p.note })) },
     { name: "To'lov tarixi", rows: db.payment_history.map(h => ({ "To'lov ID": h.payment_id, Mijoz: lname(db.payments.find(p => p.id === h.payment_id)?.lead_id), Amal: h.action, Summa: h.amount ?? '', Kim: name(h.user_id), Vaqt: fmtDT(h.created_at), Izoh: h.note || '' })) },

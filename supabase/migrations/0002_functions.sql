@@ -1,4 +1,4 @@
--- B va Express CRM — 2. Biznes funksiyalari.
+-- AvtodriveCRM — 2. Biznes funksiyalari.
 -- Barcha yozish amallari shu funksiyalar orqali bajariladi (security definer).
 -- Har bir funksiya avval foydalanuvchi rolini tekshiradi, keyin Activity Logga yozadi.
 -- Jadvallarga to'g'ridan-to'g'ri yozish RLS orqali yopilgan (0003).

@@ -1,9 +1,10 @@
 // Xodimlar: qo'shish, tahrirlash, rol va faollik (faqat FULL ADMIN).
 import { staff, attendance, ATT, isAtWork, mode } from '../data/api.js';
 import { ROLES, me } from '../auth.js';
-import { esc, fmtPhone, options, badge, icon, toast, modal, initials } from '../ui.js';
+import { esc, fmtPhone, options, badge, icon, toast, modal, initials, confirmBox } from '../ui.js';
 
 let root;
+let show = 'active'; // active | inactive | all
 
 export function render(el) {
   root = el;
@@ -12,8 +13,12 @@ export function render(el) {
 }
 
 function draw() {
-  const list = staff.list();
-  root.innerHTML = `<div class="toolbar"><span class="muted">Jami: ${list.length} ta xodim · faol: ${list.filter(p => p.active).length}</span><div class="grow"></div>
+  const all = staff.list();
+  const list = all.filter(p => show === 'all' || (show === 'active' ? p.active : !p.active));
+  const nAct = all.filter(p => p.active).length;
+  root.innerHTML = `<div class="toolbar">
+      <div class="seg"><button data-show="active" class="${show === 'active' ? 'on' : ''}">Faol (${nAct})</button><button data-show="inactive" class="${show === 'inactive' ? 'on' : ''}">Nofaol (${all.length - nAct})</button><button data-show="all" class="${show === 'all' ? 'on' : ''}">Hammasi (${all.length})</button></div>
+      <div class="grow"></div>
       <button class="btn primary" data-act="new">${icon('plus')} Xodim</button></div>
     <div class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr>
       <th>Xodim</th><th>Telefon</th><th>Login</th><th>Rol</th><th>Lavozim</th><th>Ish vaqti</th><th>Holat</th><th>Bugun</th><th>Taqsimot</th><th></th>
@@ -34,8 +39,8 @@ function draw() {
           ${p.id !== me().id ? `<button class="btn sm" data-toggle="${p.id}">${p.active ? 'Faolsizlantirish' : 'Faollashtirish'}</button>` : ''}</td>
       </tr>`;
     }).join('')}
-    </tbody></table></div></div>
-    <p class="muted small">Nofaol yoki bugun ishga kelmagan sotuvchiga yangi lead taqsimlanmaydi. Avval biriktirilgan leadlar olib qo'yilmaydi.</p>`;
+    </tbody></table></div>${list.length ? '' : `<div class="empty">${show === 'inactive' ? "Nofaol xodim yo'q" : "Xodim yo'q"}</div>`}</div>
+    <p class="muted small">Nofaol xodim tizimga kira olmaydi va unga yangi lead taqsimlanmaydi. Bugun ishga kelmagan sotuvchiga ham lead tushmaydi. Avval biriktirilgan leadlar olib qo'yilmaydi.</p>`;
 }
 
 function form(p = {}) {
@@ -56,6 +61,8 @@ function form(p = {}) {
 
 async function onClick(e) {
   const t = e.target;
+  const sh = t.closest('[data-show]');
+  if (sh) { show = sh.dataset.show; return draw(); }
   if (t.closest('[data-act="new"]')) {
     const r = await modal({ title: "Yangi xodim", submit: "Qo'shish", body: form(), onSubmit: v => staff.create(v) });
     if (r) { toast("Xodim qo'shildi"); draw(); }
@@ -69,6 +76,7 @@ async function onClick(e) {
   const tg = t.closest('[data-toggle]');
   if (tg) {
     const p = staff.list().find(x => x.id === tg.dataset.toggle);
+    if (p.active && !await confirmBox(`${p.full_name} faolsizlantirilsinmi? U tizimga kira olmaydi va unga yangi lead tushmaydi.`, { ok: 'Faolsizlantirish', danger: true })) return;
     try { await staff.update(p.id, { active: !p.active }); toast(p.active ? 'Faolsizlantirildi' : 'Faollashtirildi'); draw(); } catch (ex) { toast(ex.message, 'err'); }
   }
 }

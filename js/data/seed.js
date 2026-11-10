@@ -44,11 +44,11 @@ export function seed() {
   const ago = d => new Date(now.getTime() - d * DAY);
 
   const profiles = [
-    { id: 'u_admin', full_name: 'Bosh Administrator', phone: '+998901000001', email: 'admin@bvaexpress.uz', role: 'admin', position: 'Direktor' },
-    { id: 'u_roop', full_name: 'Operatsion menejer', phone: '+998901000002', email: 'roop@bvaexpress.uz', role: 'roop', position: 'ROOP' },
-    { id: 'u_rozali', full_name: "Ro'zali", phone: '+998901000003', email: 'rozali@bvaexpress.uz', role: 'seller', position: 'Sotuv menejeri' },
-    { id: 'u_kozim', full_name: 'Kozimjon', phone: '+998901000004', email: 'kozimjon@bvaexpress.uz', role: 'seller', position: 'Sotuv menejeri' },
-    { id: 'u_davlet', full_name: 'Davlet', phone: '+998901000005', email: 'davlet@bvaexpress.uz', role: 'seller', position: 'Sotuv menejeri' },
+    { id: 'u_admin', full_name: 'Bosh Administrator', phone: '+998901000001', email: 'admin@avtodrive.uz', role: 'admin', position: 'Direktor' },
+    { id: 'u_roop', full_name: 'Operatsion menejer', phone: '+998901000002', email: 'roop@avtodrive.uz', role: 'roop', position: 'ROOP' },
+    { id: 'u_rozali', full_name: "Ro'zali", phone: '+998901000003', email: 'rozali@avtodrive.uz', role: 'seller', position: 'Sotuv menejeri' },
+    { id: 'u_kozim', full_name: 'Kozimjon', phone: '+998901000004', email: 'kozimjon@avtodrive.uz', role: 'seller', position: 'Sotuv menejeri' },
+    { id: 'u_davlet', full_name: 'Davlet', phone: '+998901000005', email: 'davlet@avtodrive.uz', role: 'seller', position: 'Sotuv menejeri' },
   ].map((p, i) => ({
     work_start: '09:00', work_end: '18:00', schedule: 'Du–Sha', active: true,
     birthday: `199${i}-0${(i % 9) + 1}-1${i}`, telegram_chat_id: null, created_at: ago(90).toISOString(), ...p,
@@ -68,8 +68,8 @@ export function seed() {
   ].map(c => ({ ...c, description: `${c.name} haydovchilik guvohnomasi uchun tayyorlov kursi.`, active: true, created_at: ago(120).toISOString() }));
 
   const settings = {
-    center_name: 'B va Express',
-    bot_username: 'BvaExpressBot',
+    center_name: 'AvtodriveCRM',
+    bot_username: 'Avtodrive_roobot',
     sources: ['Instagram reklama', 'Telegram', 'Sayt', 'Telefon', "Qo'lda kiritish", 'Excel import', 'Tavsiya'],
     rr_order: [...sellers],
     rr_last: 'u_davlet',
@@ -169,12 +169,16 @@ export function seed() {
     const date = ymd(day);
     for (const p of profiles) {
       const status = day.getDay() === 0 ? 'dam' : weighted([['ishda', 85], ['kechikdi', 8], ['kelmadi', 4], ['ruxsat', 3]]);
-      attendance.push({ id: id('at'), profile_id: p.id, date, status, note: '', updated_by: 'u_admin', updated_at: day.toISOString() });
+      const late = status === 'kechikdi';
+      const came = status === 'ishda' || late;
+      const tin = came ? `${late ? '09' : '08'}:${String(late ? 10 + Math.floor(R() * 40) : 45 + Math.floor(R() * 15)).padStart(2, '0')}` : null;
+      const tout = came ? `${17 + Math.floor(R() * 2)}:${String(Math.floor(R() * 60)).padStart(2, '0')}` : null;
+      attendance.push({ id: id('at'), profile_id: p.id, date, status, time_in: tin, time_out: tout, note: '', updated_by: 'u_admin', updated_at: day.toISOString() });
     }
   }
   const today = ymd(now);
   for (const p of profiles) {
-    attendance.push({ id: id('at'), profile_id: p.id, date: today, status: p.id === 'u_kozim' ? 'kelmadi' : 'ishda', note: p.id === 'u_kozim' ? 'Kasal' : '', updated_by: 'u_admin', updated_at: now.toISOString() });
+    attendance.push({ id: id('at'), profile_id: p.id, date: today, status: p.id === 'u_kozim' ? 'kelmadi' : 'ishda', time_in: p.id === 'u_kozim' ? null : '08:55', time_out: null, note: p.id === 'u_kozim' ? 'Kasal' : '', updated_by: 'u_admin', updated_at: now.toISOString() });
   }
 
   // Telegram xabarnomalar tarixi

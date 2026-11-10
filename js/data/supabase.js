@@ -5,7 +5,7 @@
 // shuning uchun sahifalar orasida o'tish tez.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js';
 import { setSession, me } from '../auth.js';
-import { today, fullName, ACTIONS as ACTION_NAMES } from './common.js';
+import { today, fullName, ACTIONS as ACTION_NAMES, attendanceReport } from './common.js';
 
 const SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 export const mode = 'supabase';
@@ -266,10 +266,12 @@ export const payments = {
 /* ---------------- davomat ---------------- */
 export const attendance = {
   async day(date) {
-    const rows = check(await sb.from('attendance').select('profile_id,status,note').eq('date', date));
+    const rows = check(await sb.from('attendance').select('profile_id,status,note,time_in,time_out').eq('date', date));
     const m = new Map(rows.map(r => [r.profile_id, r]));
+    const hm = t => (t ? String(t).slice(0, 5) : '');
     return cache.profiles.map(p => ({
       profile: { ...p }, status: m.get(p.id)?.status || '', note: m.get(p.id)?.note || '',
+      time_in: hm(m.get(p.id)?.time_in), time_out: hm(m.get(p.id)?.time_out),
       in_rr: p.role === 'seller' && date === today() && isAtWork(p.id),
     }));
   },
@@ -277,6 +279,18 @@ export const attendance = {
   async set(profileId, date, status, note = '') {
     await rpc('set_attendance', { p_profile: profileId, p_date: date, p_status: status, p_note: note });
     if (date === today()) cache.att.set(profileId, status);
+  },
+  async save(profileId, date, { status = '', time_in = '', time_out = '' } = {}) {
+    await rpc('attendance_save', { p_profile: profileId, p_date: date, p_status: status || null, p_in: time_in || null, p_out: time_out || null, p_note: null });
+    if (date === today()) {
+      const r = check(await sb.from('attendance').select('status').eq('profile_id', profileId).eq('date', date).maybeSingle());
+      if (r) cache.att.set(profileId, r.status);
+    }
+  },
+  // Davr bo'yicha hisobot: kelgan kunlar, kechikish, ishlagan soatlar
+  async report(from, to) {
+    const rows = await fetchAll(() => sb.from('attendance').select('profile_id,status,time_in,time_out').gte('date', from).lte('date', to));
+    return attendanceReport(cache.profiles, rows);
   },
   async month(ym) {
     const [y, m] = ym.split('-').map(Number);

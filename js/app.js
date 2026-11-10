@@ -50,9 +50,9 @@ function menuFor(u) { return MENU.filter(m => m.roles.includes(u.role)); }
 function renderShell(u) {
   app.innerHTML = `<div class="shell">
     <aside class="side" id="side">
-      <div class="brand"><div class="brand-logo">B</div><div><b>B va Express</b><small>CRM</small></div></div>
+      <div class="brand"><div class="brand-logo">A</div><div><b>Avtodrive</b><small>CRM</small></div></div>
       <nav class="nav" id="nav">${menuFor(u).map(m => `<a href="#/${m.id}" data-id="${m.id}">${icon(m.icon)}<span>${esc(u.role === 'seller' && m.sellerTitle || m.title)}</span><span class="cnt" hidden></span></a>`).join('')}</nav>
-      <div class="side-foot">${mode === 'demo' ? "Demo rejim · ma'lumotlar brauzerda saqlanadi" : 'B va Express CRM'}</div>
+      <div class="side-foot">${mode === 'demo' ? "Demo rejim · ma'lumotlar brauzerda saqlanadi" : 'AvtodriveCRM'}</div>
     </aside>
     <div class="main">
       <header class="top">
@@ -102,7 +102,7 @@ async function route() {
   const item = items.find(m => m.id === id) || items[0];
   for (const a of document.querySelectorAll('#nav a')) a.classList.toggle('active', a.dataset.id === item.id);
   $('#page-title').textContent = u.role === 'seller' && item.sellerTitle || item.title;
-  document.title = `${item.title} · B va Express CRM`;
+  document.title = `${item.title} · AvtodriveCRM`;
   const content = $('#content');
   content.onclick = content.oninput = content.onchange = null;
   try {

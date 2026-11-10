@@ -12,4 +12,4 @@ export const {
   profileName, isAtWork, backupTables,
 } = impl;
 
-export { ymd, today, dayOf, normPhone, ACTIONS, PAY_STATUS, payStatus, ATT } from './common.js';
+export { ymd, today, dayOf, normPhone, ACTIONS, PAY_STATUS, payStatus, ATT, workedMinutes, hhmm } from './common.js';

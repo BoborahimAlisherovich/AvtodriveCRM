@@ -60,3 +60,27 @@ export const ATT = {
   ruxsat: { name: "Ruxsat bilan yo'q", color: '#a77bde' },
   dam: { name: 'Dam olish kuni', color: '#9aa3ab' },
 };
+
+// "09:05" → daqiqa
+const mins = t => { if (!t) return null; const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+// Bir kunlik ishlagan daqiqa (kelish va ketish vaqti bo'lsa)
+export function workedMinutes(a) {
+  const i = mins(a?.time_in), o = mins(a?.time_out);
+  return i !== null && o !== null && o > i ? o - i : 0;
+}
+// Davomat yozuvlaridan har bir xodim uchun hisobot
+export function attendanceReport(profiles, rows) {
+  return profiles.map(p => {
+    const r = { profile: { ...p }, ishda: 0, kechikdi: 0, kelmadi: 0, ruxsat: 0, dam: 0, came: 0, minutes: 0, timed: 0 };
+    for (const a of rows) {
+      if (a.profile_id !== p.id) continue;
+      if (r[a.status] !== undefined) r[a.status]++;
+      if (a.status === 'ishda' || a.status === 'kechikdi') r.came++;
+      const m = workedMinutes(a);
+      if (m) { r.minutes += m; r.timed++; }
+    }
+    r.avg = r.timed ? Math.round(r.minutes / r.timed) : 0;
+    return r;
+  });
+}
+export const hhmm = m => `${Math.floor(m / 60)} soat ${String(m % 60).padStart(2, '0')} daq`;

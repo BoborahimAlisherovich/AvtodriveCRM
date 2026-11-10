@@ -1,4 +1,4 @@
-# B va Express CRM
+# AvtodriveCRM
 
 Oddiy HTML/CSS/JS frontend (build kerak emas) + Supabase backend (PostgreSQL, Auth, RLS, Edge Functions, Cron).
 
@@ -31,11 +31,12 @@ Keyin http://localhost:5173 ni oching.
 6. `supabase/migrations/0007_bot_menu.sql` — Telegram bot menyusi (Biz haqimizda, Aloqa matnlari)
 7. `supabase/migrations/0008_meta_leads.sql` — Instagram/Facebook reklama formalari (CRM → API bo'limi)
 8. `supabase/migrations/0009_birthday_messages.sql` — tug'ilgan kun tabrigi va CRM'dan bot orqali xabar
+9. `supabase/migrations/0010_attendance_times_payments.sql` — davomatda kelish/ketish vaqti, to'lov xabarida qolgan qarz
 
 ### 3. Autentifikatsiya
 1. **Authentication → Sign In / Providers → Email**: **"Allow new users to sign up"** ni o'chiring
    (xodimlarni faqat admin qo'shadi; o'chirilmasa ham begona foydalanuvchi nofaol bo'lib qoladi va hech narsa ko'rmaydi).
-2. **Authentication → URL Configuration → Site URL**: saytingiz manzili (masalan `https://bvaexpress-crm.netlify.app`).
+2. **Authentication → URL Configuration → Site URL**: saytingiz manzili (masalan `https://avtodrive-woad.vercel.app`).
 3. **Authentication → Users → Add user**: o'z emailingiz va parol, **Auto Confirm** belgilang.
    → **Eng birinchi foydalanuvchi avtomatik FULL ADMIN bo'ladi.**
 

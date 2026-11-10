@@ -1,4 +1,4 @@
--- B va Express CRM — 4. Avtomatlashtirish (Supabase Cron).
+-- AvtodriveCRM — 4. Avtomatlashtirish (Supabase Cron).
 -- Ishga tushirishdan oldin:
 --   1) Database → Extensions bo'limida pg_cron va pg_net ni yoqing.
 --   2) Pastdagi <PROJECT_REF> va <CRON_SECRET> ni o'zingiznikiga almashtiring

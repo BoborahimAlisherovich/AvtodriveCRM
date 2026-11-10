@@ -7,9 +7,9 @@ export function renderLogin(el, onDone) {
   const demo = mode === 'demo';
   const users = demo ? demoUsers() : [];
   el.innerHTML = `<div class="login"><div class="login-card">
-    <div class="brand"><div class="brand-logo">B</div><div><b>B va Express CRM</b><small>Tizimga kirish</small></div></div>
+    <div class="brand"><div class="brand-logo">A</div><div><b>AvtodriveCRM</b><small>Tizimga kirish</small></div></div>
     <form id="login-form" class="stack" style="gap:10px">
-      <div class="fld"><label>Login (email)</label><input class="inp" name="email" type="email" placeholder="admin@bvaexpress.uz" autocomplete="username" required></div>
+      <div class="fld"><label>Login (email)</label><input class="inp" name="email" type="email" placeholder="email@example.com" autocomplete="username" required></div>
       <div class="fld"><label>Parol</label><input class="inp" name="password" type="password" autocomplete="current-password" ${demo ? '' : 'required'}></div>
       <button class="btn primary" type="submit">Kirish</button>
     </form>
